@@ -1,0 +1,47 @@
+version: "3.8"
+
+services:
+  db:
+    image: mysql:8.0
+    container_name: lms_mysql_db
+    restart: always
+    environment:
+      MYSQL_DATABASE: lms_mesin_db
+      MYSQL_USER: lms_user
+      MYSQL_PASSWORD: lms_secure_password_123
+      MYSQL_ROOT_PASSWORD: root_secure_password_123
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - lms_network
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: lms_web_app
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      # Koneksi ke db container dengan host "db"
+      DATABASE_URL: "mysql://lms_user:lms_secure_password_123@db:3306/lms_mesin_db"
+      NEXTAUTH_URL: "http://localhost:3000"
+      NEXTAUTH_SECRET: "td8jcb45EsybrF6GPz6+ujeUprWy6DMqNVLZZBj2LLLkNoWW33GZxmWrkMEf3dFo"
+    depends_on:
+      - db
+    volumes:
+      # Simpan file upload di host agar tidak hilang saat container restart
+      - uploads_data:/app/public/uploads
+    networks:
+      - lms_network
+
+volumes:
+  mysql_data:
+  uploads_data:
+
+networks:
+  lms_network:
+    driver: bridge

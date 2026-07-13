@@ -1,0 +1,403 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  password_hash String
+  role          String    // "Admin", "Guru", "Murid"
+  createdAt     DateTime  @default(now())
+  
+  // 2FA Fields
+  twoFactorSecret  String?
+  twoFactorEnabled Boolean  @default(false)
+
+  // Relations
+  coursesTaught Course[]  @relation("TeacherCourses")
+  enrollments   Enrollment[]
+  attendances   Attendance[]
+  assignments   AssignmentSubmission[]
+  grades        Grade[]
+  logbooks      Logbook[]
+  portfolios    Portfolio[]
+  toolLoans     ToolLoan[]
+  maintenanceLogs MaintenanceLog[]
+  quizAttempts  QuizAttempt[]
+  forumPosts    ForumPost[]
+  notifications Notification[]
+  attitudeGrades AttitudeGrade[]
+  violations    Violation[]          @relation("ViolationStudent")
+  reportedViolations Violation[]     @relation("ReportedViolations")
+  teacherJournals    TeacherJournal[] @relation("TeacherJournals")
+  activityLogs       ActivityLog[]
+  userSessions       UserSession[]
+  reservations       MachineReservation[]
+}
+
+model Course {
+  id          String    @id @default(cuid())
+  name        String
+  class       String
+  description String?
+  teacherId   String
+  teacher     User      @relation("TeacherCourses", fields: [teacherId], references: [id])
+
+  modules     Module[]
+  jobSheets   JobSheet[]
+  enrollments Enrollment[]
+  attendances Attendance[]
+  assignments Assignment[]
+  grades      Grade[]
+  quizzes     Quiz[]
+  forumPosts  ForumPost[]
+  attitudeGrades AttitudeGrade[]
+  teacherJournals TeacherJournal[]
+}
+
+model Enrollment {
+  id                String   @id @default(cuid())
+  studentId         String
+  student     User     @relation(fields: [studentId], references: [id])
+  courseId          String
+  course            Course   @relation(fields: [courseId], references: [id])
+  createdAt         DateTime @default(now())
+  
+  // Shift & Jadwal Mesin Praktik
+  shift             String?  // Shift Pagi, Shift Siang
+  assignedMachineId String?
+  assignedMachine   Machine? @relation(fields: [assignedMachineId], references: [id])
+
+  @@unique([studentId, courseId])
+}
+
+model Module {
+  id       String @id @default(cuid())
+  courseId String
+  course   Course @relation(fields: [courseId], references: [id])
+  title    String
+  fileType String
+  fileUrl  String
+  fileName String? // Nama file asli untuk upload
+}
+
+model JobSheet {
+  id             String @id @default(cuid())
+  courseId       String
+  course         Course @relation(fields: [courseId], references: [id])
+  title          String
+  objective      String?
+  tools          String // JSON stringified array or comma separated
+  materials      String // JSON stringified array or comma separated
+  sop            String // JSON stringified array or comma separated
+  safety         String // JSON stringified array or comma separated
+  cadUrl         String? // URL file STL/STEP untuk visualisasi 3D
+  status         String @default("Belum Dikerjakan")
+  dueDate        DateTime?
+  createdAt      DateTime @default(now())
+}
+
+model Attendance {
+  id        String   @id @default(cuid())
+  courseId  String
+  course    Course   @relation(fields: [courseId], references: [id])
+  studentId String
+  student   User     @relation(fields: [studentId], references: [id])
+  date      DateTime @default(now())
+  status    String   // "Hadir", "Izin", "Sakit", "Alpa"
+}
+
+model Assignment {
+  id          String   @id @default(cuid())
+  courseId    String
+  course      Course   @relation(fields: [courseId], references: [id])
+  title       String
+  deadline    DateTime
+  submissions AssignmentSubmission[]
+}
+
+model AssignmentSubmission {
+  id           String     @id @default(cuid())
+  assignmentId String
+  assignment   Assignment @relation(fields: [assignmentId], references: [id])
+  studentId    String
+  student      User       @relation(fields: [studentId], references: [id])
+  fileUrl      String     // Ini bertindak sebagai link Laporan atau Foto Benda Kerja
+  fileName     String?    // Nama file asli yang diupload
+  
+  // Rubrik Penilaian Bengkel Mesin
+  gradePrecision Float?   // 0-100 (Kesesuaian Toleransi Ukuran)
+  gradeFinishing Float?   // 0-100 (Kekasaran permukaan & kerapian)
+  gradeSafety   Float?    // 0-100 (Penggunaan APD & kepatuhan K3)
+  
+  grade        Int?       // Total Nilai Akhir Praktik (Kalkulasi Rata-rata Rubrik)
+  feedback     String?
+  status       String     @default("Belum Mengumpulkan")
+  createdAt    DateTime   @default(now())
+}
+
+model Grade {
+  id         String   @id @default(cuid())
+  studentId  String
+  student    User     @relation(fields: [studentId], references: [id])
+  courseId   String
+  course     Course   @relation(fields: [courseId], references: [id])
+  daily      Float    @default(0)
+  practical  Float    @default(0)
+  midterm    Float    @default(0)
+  final      Float    @default(0)
+  finalScore Float    @default(0)
+  updatedAt  DateTime @updatedAt
+
+  @@unique([studentId, courseId])
+}
+
+model Machine {
+  id          String   @id @default(cuid())
+  name        String   // Contoh: Mesin Bubut #1, CNC Milling Haas
+  type        String   // Bubut, Frais, CNC, Las, Gerinda, dll
+  status      String   // Ready, Maintenance, Broken
+  notes       String?
+  updatedAt   DateTime @updatedAt
+  logbooks    Logbook[]
+  enrollments Enrollment[]
+  maintenanceLogs MaintenanceLog[]
+  reservations MachineReservation[]
+}
+
+model Announcement {
+  id        String   @id @default(cuid())
+  title     String
+  content   String
+  category  String   // Info, K3, Jadwal, Umum
+  date      DateTime @default(now())
+}
+
+model Logbook {
+  id          String   @id @default(cuid())
+  studentId   String
+  student     User     @relation(fields: [studentId], references: [id])
+  machineId   String
+  machine     Machine  @relation(fields: [machineId], references: [id])
+  activity    String   // Aktivitas praktik (misal: Membubut Poros Bertingkat)
+  duration    Int      // Jam (misal: 3 jam)
+  date        DateTime @default(now())
+  notes       String?  // Catatan kendala mesin/material
+}
+
+model Portfolio {
+  id           String   @id @default(cuid())
+  studentId    String
+  student      User     @relation(fields: [studentId], references: [id])
+  workpieceName String   // Nama benda kerja (contoh: Palu Cakar, Ulir Segitiga)
+  imageUrl     String   // Link foto fisik benda kerja
+  grade        Int      // Nilai dari guru
+  date         DateTime @default(now())
+}
+
+model Tool {
+  id          String    @id @default(cuid())
+  name        String    // Contoh: Jangka Sorong Mitutoyo 150mm, Pahat HSS Insert
+  quantity    Int       // Total stok
+  available   Int       // Tersedia dipinjam
+  location    String?   // Contoh: Lemari A-1
+  loans       ToolLoan[]
+}
+
+model ToolLoan {
+  id          String   @id @default(cuid())
+  studentId   String
+  student     User     @relation(fields: [studentId], references: [id])
+  toolId      String
+  tool        Tool     @relation(fields: [toolId], references: [id])
+  quantity    Int      @default(1)
+  status      String   // Pending, Borrowed, Returned, Rejected
+  loanDate    DateTime @default(now())
+  returnDate  DateTime?
+  notes       String?  // Contoh: 'Kembali dengan jangka sorong tergores'
+}
+
+model ForumPost {
+  id        String   @id @default(cuid())
+  courseId  String
+  course    Course   @relation(fields: [courseId], references: [id])
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id])
+  content   String
+  createdAt DateTime @default(now())
+}
+
+model MaintenanceLog {
+  id          String   @id @default(cuid())
+  machineId   String
+  machine     Machine  @relation(fields: [machineId], references: [id])
+  userId      String
+  user        User     @relation(fields: [userId], references: [id]) // Guru atau Siswa yang merawat
+  task        String   // Tugas perawatan (misal: Ganti oli, bersihkan gram, cek kelistrikan)
+  status      String   // Completed, Pending
+  date        DateTime @default(now())
+  notes       String?
+}
+
+model Quiz {
+  id          String   @id @default(cuid())
+  courseId    String
+  course      Course   @relation(fields: [courseId], references: [id])
+  title       String
+  description String?
+  timeLimit   Int      // Batas waktu pengerjaan dalam menit (misal: 30 menit)
+  questions   Question[]
+  attempts    QuizAttempt[]
+  createdAt   DateTime @default(now())
+}
+
+model Question {
+  id          String   @id @default(cuid())
+  quizId      String
+  quiz        Quiz     @relation(fields: [quizId], references: [id])
+  text        String   // Pertanyaan kuis (teks atau gambar)
+  options     String   // Pilihan jawaban (JSON stringified array, e.g. ["A", "B", "C", "D"])
+  answer      String   // Jawaban yang benar (misal: "A" atau teks yang cocok)
+}
+
+model QuizAttempt {
+  id          String   @id @default(cuid())
+  quizId      String
+  quiz        Quiz     @relation(fields: [quizId], references: [id])
+  studentId   String
+  student     User     @relation(fields: [studentId], references: [id])
+  score       Int      // 0-100
+  answers     String   // Jawaban murid (JSON stringified key-value, e.g. {"soalId1": "A"})
+  submittedAt DateTime @default(now())
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String   // tool_reminder, machine_emergency, maintenance, general
+  title     String
+  message   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+// Nilai Sikap (Attitude/Behavior Grade)
+model AttitudeGrade {
+  id        String   @id @default(cuid())
+  studentId String
+  student   User     @relation(fields: [studentId], references: [id])
+  courseId  String
+  course    Course   @relation(fields: [courseId], references: [id])
+  discipline Float   @default(0)  // Kedisiplinan (0-100)
+  responsibility Float @default(0) // Tanggung jawab (0-100)
+  cleanliness   Float  @default(0) // Kebersihan & kerapian (0-100)
+  cooperation   Float  @default(0) // Kerjasama tim (0-100)
+  semester      String // "Ganjil" or "Genap"
+  updatedAt     DateTime @updatedAt
+
+  @@unique([studentId, courseId, semester])
+}
+
+// Kalender Akademik
+model CalendarEvent {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  date        DateTime
+  endDate     DateTime?
+  type        String   // Libur, Ujian, Praktik, Rapat, Kegiatan
+  allDay      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+}
+
+// Pelanggaran & Tata Tertib Siswa
+model Violation {
+  id          String   @id @default(cuid())
+  studentId   String
+  student     User     @relation("ViolationStudent", fields: [studentId], references: [id])
+  reportedBy  String
+  reporter    User     @relation("ReportedViolations", fields: [reportedBy], references: [id])
+  category    String   // Ringan, Sedang, Berat
+  description String
+  points      Int      @default(0)
+  date        DateTime @default(now())
+  createdAt   DateTime @default(now())
+}
+
+// Jurnal Mengajar Guru
+model TeacherJournal {
+  id        String   @id @default(cuid())
+  teacherId String
+  teacher   User     @relation("TeacherJournals", fields: [teacherId], references: [id])
+  courseId  String
+  course    Course   @relation(fields: [courseId], references: [id])
+  date      DateTime @default(now())
+  topic     String   // Materi yang diajarkan
+  summary   String?  // Catatan kegiatan
+  obstacles String?  // Kendala
+  createdAt DateTime @default(now())
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  email     String
+  token     String   @unique
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model JobVacancy {
+  id          String   @id @default(cuid())
+  company     String   // Contoh: PT Krakatau Steel, PT Chandra Asri
+  position    String   // Contoh: Operator Mesin CNC, Fitter
+  description String
+  location    String   // Contoh: Cilegon, Banten
+  salary      String?  // Gaji (Opsional)
+  contact     String   // Email / No Telp untuk melamar
+  datePosted  DateTime @default(now())
+}
+
+model ActivityLog {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  action    String   // Contoh: "LOGIN", "UPDATE_GRADE", "DELETE_USER"
+  details   String?  // JSON string
+  ipAddress String?
+  createdAt DateTime @default(now())
+}
+
+model UserSession {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  userAgent String?
+  ipAddress String?
+  lastActive DateTime @default(now())
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+  pushSubscription String? // JSON string of subscription
+}
+
+model MachineReservation {
+  id         String   @id @default(cuid())
+  machineId  String
+  machine    Machine  @relation(fields: [machineId], references: [id], onDelete: Cascade)
+  studentId  String
+  student    User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  courseId   String
+  startTime  DateTime
+  endTime    DateTime
+  status     String   // "Pending", "Approved", "Cancelled", "Completed"
+  createdAt  DateTime @default(now())
+}
