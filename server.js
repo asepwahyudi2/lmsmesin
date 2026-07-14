@@ -1,3 +1,4 @@
+#!/opt/alt/alt-nodejs20/root/usr/bin/node
 /* eslint-disable @typescript-eslint/no-require-imports */
 const { createServer } = require('http');
 const { parse } = require('url');
