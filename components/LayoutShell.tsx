@@ -15,7 +15,7 @@ export function LayoutShell({ children }: { children: React.ReactNode }) {
   const { data: session, status } = useSession();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const isAuthPage = pathname === "/login" || pathname === "/forgot-password" || pathname === "/reset-password";
+  const isAuthPage = pathname.endsWith("/login") || pathname.endsWith("/forgot-password") || pathname.endsWith("/reset-password");
 
   if (isAuthPage) {
     return <>{children}</>;

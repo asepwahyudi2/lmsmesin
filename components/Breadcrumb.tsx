@@ -32,7 +32,7 @@ const ROUTE_LABELS: Record<string, string> = {
 export function Breadcrumb() {
   const pathname = usePathname();
 
-  if (pathname === "/" || pathname === "/login") return null;
+  if (pathname === "/" || pathname.endsWith("/login")) return null;
 
   const segments = pathname.split("/").filter(Boolean);
 
