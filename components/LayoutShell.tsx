@@ -6,16 +6,24 @@ import { Sidebar } from "./Sidebar";
 import { Breadcrumb } from "./Breadcrumb";
 import { BottomNav } from "./BottomNav";
 
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Wrench } from "lucide-react";
 
 export function LayoutShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { data: session, status } = useSession();
+  const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const isAuthPage = pathname.endsWith("/login") || pathname.endsWith("/forgot-password") || pathname.endsWith("/reset-password");
+  const normalizedPath = pathname ? pathname.replace(/\/$/, "") : "";
+  const isAuthPage = normalizedPath.endsWith("/login") || normalizedPath.endsWith("/forgot-password") || normalizedPath.endsWith("/reset-password");
+
+  React.useEffect(() => {
+    if (status === "unauthenticated" && !isAuthPage) {
+      router.push("/login");
+    }
+  }, [status, isAuthPage, router]);
 
   if (isAuthPage) {
     return <>{children}</>;
