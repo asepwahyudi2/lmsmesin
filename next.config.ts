@@ -23,24 +23,20 @@ const securityHeaders = [
   },
   {
     key: "Content-Security-Policy",
-    // CSP longgar agar library external (QR, 3D CAD, API QR server) bisa jalan
-    value: "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://api.qrserver.com; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data: https://api.qrserver.com https://threejs.org; connect-src 'self' https://api.qrserver.com; media-src 'self'; font-src 'self' data:; object-src 'none';",
+    value: "default-src 'self'; script-src 'self' https://api.qrserver.com; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data: https://api.qrserver.com https://threejs.org; connect-src 'self' https://api.qrserver.com; media-src 'self'; font-src 'self' data:; object-src 'none';",
   },
 ];
 
+const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
+
 const nextConfig: NextConfig = {
   serverExternalPackages: ["bcryptjs"],
+  basePath: basePath || undefined,
   images: {
     remotePatterns: [
-      { protocol: "https", hostname: "**" },
+      { protocol: "https", hostname: "api.qrserver.com" },
+      { protocol: "https", hostname: "threejs.org" },
     ],
-  },
-  webpack: (config, { isServer }) => {
-    config.resolve.alias = {
-      ...config.resolve.alias,
-      '@': require('path').resolve(__dirname),
-    };
-    return config;
   },
   async headers() {
     return [

@@ -25,41 +25,44 @@ export async function createReservation(data: {
       throw new Error("Waktu mulai harus lebih awal dari waktu selesai.");
     }
 
-    // Periksa bentrokan jadwal pada mesin tersebut
-    const conflict = await prisma.machineReservation.findFirst({
-      where: {
-        machineId: data.machineId,
-        status: { in: ["Pending", "Approved"] },
-        OR: [
-          {
-            startTime: { lte: start },
-            endTime: { gte: start },
-          },
-          {
-            startTime: { lte: end },
-            endTime: { gte: end },
-          },
-          {
-            startTime: { gte: start },
-            endTime: { lte: end },
-          },
-        ],
-      },
-    });
+    // Use transaction to prevent race condition
+    const reservation = await prisma.$transaction(async (tx) => {
+      // Periksa bentrokan jadwal pada mesin tersebut
+      const conflict = await tx.machineReservation.findFirst({
+        where: {
+          machineId: data.machineId,
+          status: { in: ["Pending", "Approved"] },
+          OR: [
+            {
+              startTime: { lte: start },
+              endTime: { gte: start },
+            },
+            {
+              startTime: { lte: end },
+              endTime: { gte: end },
+            },
+            {
+              startTime: { gte: start },
+              endTime: { lte: end },
+            },
+          ],
+        },
+      });
 
-    if (conflict) {
-      throw new Error("Mesin sudah dipesan pada rentang waktu tersebut.");
-    }
+      if (conflict) {
+        throw new Error("Mesin sudah dipesan pada rentang waktu tersebut.");
+      }
 
-    const reservation = await prisma.machineReservation.create({
-      data: {
-        machineId: data.machineId,
-        studentId: user.id,
-        courseId: data.courseId,
-        startTime: start,
-        endTime: end,
-        status: "Pending",
-      },
+      return await tx.machineReservation.create({
+        data: {
+          machineId: data.machineId,
+          studentId: user.id,
+          courseId: data.courseId,
+          startTime: start,
+          endTime: end,
+          status: "Pending",
+        },
+      });
     });
 
     await logActivity(user.id, "CREATE_RESERVATION", { id: reservation.id, machineId: data.machineId });
@@ -73,7 +76,15 @@ export async function createReservation(data: {
 
 export async function getReservations() {
   try {
+    const user = await requireSession();
+    
+    const whereClause: any = {};
+    if (user.role === "Murid") {
+      whereClause.studentId = user.id;
+    }
+    
     const reservations = await prisma.machineReservation.findMany({
+      where: whereClause,
       include: {
         machine: { select: { name: true, type: true } },
         student: { select: { name: true, email: true } },
@@ -96,9 +107,19 @@ export async function updateReservationStatus(id: string, status: "Approved" | "
 
     if (!existing) throw new Error("Reservasi tidak ditemukan.");
 
-    // Guru/Admin bisa menyetujui/mengubah status apa saja, murid hanya bisa cancel miliknya sendiri
-    if (user.role === "Murid" && existing.studentId !== user.id) {
-      throw new Error("Anda tidak berhak memodifikasi reservasi ini.");
+    // Only Admin/Guru can approve or complete
+    if ((status === "Approved" || status === "Completed") && user.role !== "Admin" && user.role !== "Guru") {
+      throw new Error("Hanya Admin atau Guru yang dapat menyetujui atau menyelesaikan reservasi.");
+    }
+
+    // Murid can only cancel their own reservation
+    if (user.role === "Murid") {
+      if (existing.studentId !== user.id) {
+        throw new Error("Anda tidak berhak memodifikasi reservasi ini.");
+      }
+      if (status !== "Cancelled") {
+        throw new Error("Anda hanya dapat membatalkan reservasi Anda sendiri.");
+      }
     }
 
     const updated = await prisma.machineReservation.update({

@@ -7,12 +7,25 @@ import { logActivity } from "@/lib/audit";
 
 export async function getQuizzes(courseId?: string) {
   try {
+    const user = await requireSession();
     const whereClause = courseId ? { courseId } : {};
+    
+    // If user is Murid, exclude answer field from questions
+    const includeAnswer = user.role !== "Murid";
+    
     const quizzes = await prisma.quiz.findMany({
       where: whereClause,
       include: {
         course: { select: { name: true, class: true } },
-        questions: true,
+        questions: {
+          select: {
+            id: true,
+            text: true,
+            options: true,
+            answer: includeAnswer,
+            quizId: true,
+          }
+        },
         attempts: {
           include: { student: { select: { name: true } } }
         }

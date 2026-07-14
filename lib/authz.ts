@@ -35,6 +35,10 @@ export async function requireCourseAccess(courseId: string, allowedRoles: AppRol
 }
 
 export async function requireEnrollment(studentId: string, courseId: string) {
+  const user = await requireSession();
+  if (user.role === "Murid" && user.id !== studentId) {
+    throw new Error("Anda tidak memiliki izin untuk mengakses data siswa lain.");
+  }
   const { prisma } = await import("@/lib/prisma");
   const enrollment = await prisma.enrollment.findUnique({
     where: { studentId_courseId: { studentId, courseId } },
@@ -43,4 +47,5 @@ export async function requireEnrollment(studentId: string, courseId: string) {
   if (!enrollment) {
     throw new Error("Siswa tidak terdaftar pada mata pelajaran ini.");
   }
+  return user;
 }

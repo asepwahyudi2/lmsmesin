@@ -31,6 +31,16 @@ export async function requestPasswordReset(email: string) {
 
     const resetLink = `${process.env.NEXTAUTH_URL || "http://localhost:3000"}/reset-password?token=${token}`;
 
+    const isProd = process.env.NODE_ENV === "production";
+    if (isProd) {
+      console.log(`[RESET PASSWORD] Link for ${email}: ${resetLink}`);
+      return {
+        success: true,
+        username: user.name,
+        message: "Tautan reset password berhasil dibuat. Silakan cek email Anda.",
+      };
+    }
+
     return {
       success: true,
       token,

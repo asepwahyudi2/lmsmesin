@@ -12,8 +12,6 @@ const ALLOWED_MIME_TYPES = new Set([
   "image/gif",
   "video/mp4",
   "video/webm",
-  "model/stl",
-  "application/octet-stream",
   "application/vnd.ms-excel",
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   "application/msword",
@@ -68,11 +66,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Strict MIME validation
     if (file.type && !ALLOWED_MIME_TYPES.has(file.type)) {
-      const isAcceptable = Array.from(ALLOWED_EXTENSIONS).some(e => ext === e);
-      if (!isAcceptable) {
+      // Allow CAD model files specifically
+      const isCAD = ext === ".stl" || ext === ".step" || ext === ".stp";
+      if (!isCAD) {
         return NextResponse.json(
-          { success: false, error: "Tipe file tidak diizinkan" },
+          { success: false, error: "Tipe file MIME tidak diizinkan" },
           { status: 400 }
         );
       }

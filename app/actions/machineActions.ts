@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { requireRole } from "@/lib/authz";
 
 export async function getMachines() {
   try {
@@ -16,6 +17,7 @@ export async function getMachines() {
 
 export async function updateMachineStatus(id: string, status: "Ready" | "Maintenance" | "Broken", notes?: string) {
   try {
+    await requireRole("Admin", "Guru");
     const machine = await prisma.machine.update({
       where: { id },
       data: { status, notes }
@@ -30,6 +32,7 @@ export async function updateMachineStatus(id: string, status: "Ready" | "Mainten
 
 export async function createMachine(name: string, type: string, status: string, notes?: string) {
   try {
+    await requireRole("Admin", "Guru");
     const machine = await prisma.machine.create({
       data: { name, type, status, notes }
     });

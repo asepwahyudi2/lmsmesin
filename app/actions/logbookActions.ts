@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { requireSession } from "@/lib/authz";
 
 export async function createLogbook(data: {
   studentId: string;
@@ -11,9 +12,19 @@ export async function createLogbook(data: {
   notes?: string;
 }) {
   try {
+    const user = await requireSession();
+    let targetStudentId = data.studentId;
+    if (user.role === "Murid") {
+      targetStudentId = user.id;
+    } else {
+      if (!targetStudentId) {
+        throw new Error("Student ID wajib diisi.");
+      }
+    }
+
     const logbook = await prisma.logbook.create({
       data: {
-        studentId: data.studentId,
+        studentId: targetStudentId,
         machineId: data.machineId,
         activity: data.activity,
         duration: data.duration,
@@ -29,7 +40,14 @@ export async function createLogbook(data: {
 
 export async function getLogbooks(studentId?: string) {
   try {
-    const whereClause = studentId ? { studentId } : {};
+    const user = await requireSession();
+    let whereClause = {};
+    if (user.role === "Murid") {
+      whereClause = { studentId: user.id };
+    } else {
+      whereClause = studentId ? { studentId } : {};
+    }
+
     const logbooks = await prisma.logbook.findMany({
       where: whereClause,
       include: {

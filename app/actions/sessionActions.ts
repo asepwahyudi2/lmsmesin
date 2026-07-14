@@ -4,11 +4,21 @@ import { cookies, headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import crypto from "crypto";
 import bcrypt from "bcryptjs";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "../api/auth/[...nextauth]/options";
+import { rateLimit } from "@/lib/rateLimit";
 
 export async function validateCredentialsAction(email: string, password: string) {
   try {
     if (!email || !password) {
       return { success: false, error: "Email dan password wajib diisi" };
+    }
+
+    // Rate limiter untuk mencegah brute force bypass
+    const limiter = await rateLimit(10, 5 * 60 * 1000);
+    if (!limiter.success) {
+      const waitMinutes = Math.ceil((limiter.resetTime - Date.now()) / 1000 / 60);
+      return { success: false, error: `Terlalu banyak percobaan login. Akses dikunci selama ${waitMinutes} menit.` };
     }
 
     const user = await prisma.user.findUnique({
@@ -41,6 +51,12 @@ export async function validateCredentialsAction(email: string, password: string)
 
 export async function setDeviceSessionAction(userId: string) {
   try {
+    // Validasi bahwa user yang meminta sesi adalah user yang sedang login via NextAuth
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user || session.user.id !== userId) {
+      return { success: false, error: "Akses ditolak" };
+    }
+
     const cookieStore = await cookies();
     const headerList = await headers();
     

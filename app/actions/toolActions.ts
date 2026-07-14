@@ -54,18 +54,31 @@ export async function updateLoanStatus(loanId: string, status: "Borrowed" | "Rej
     if (status === "Returned" && loan.status !== "Borrowed") throw new Error("Hanya alat yang sedang dipinjam dapat dikembalikan.");
 
     if (status === "Borrowed") {
-      // Potong stok available
-      if (loan.tool.available < loan.quantity) throw new Error("Stok alat tidak mencukupi.");
-      await prisma.tool.update({
-        where: { id: loan.toolId },
-        data: { available: loan.tool.available - loan.quantity }
+      // Atomic update to prevent race condition
+      const result = await prisma.tool.updateMany({
+        where: { 
+          id: loan.toolId,
+          available: { gte: loan.quantity }
+        },
+        data: { 
+          available: { decrement: loan.quantity }
+        }
       });
+      if (result.count === 0) {
+        throw new Error("Stok alat tidak mencukupi.");
+      }
     } else if (status === "Returned") {
-      // Kembalikan stok available
+      // Atomic increment for return
       await prisma.tool.update({
         where: { id: loan.toolId },
-        data: { available: Math.min(loan.tool.quantity, loan.tool.available + loan.quantity) }
+        data: { available: { increment: loan.quantity } }
       });
+      // Ensure available doesn't exceed quantity
+      await prisma.$executeRaw`
+        UPDATE Tool 
+        SET available = LEAST(available, quantity) 
+        WHERE id = ${loan.toolId}
+      `;
     }
 
     await prisma.toolLoan.update({

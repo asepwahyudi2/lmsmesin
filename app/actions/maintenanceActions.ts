@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { requireSession } from "@/lib/authz";
 
 export async function createMaintenanceLog(data: {
   machineId: string;
@@ -11,10 +12,20 @@ export async function createMaintenanceLog(data: {
   notes?: string;
 }) {
   try {
+    const user = await requireSession();
+    let targetUserId = data.userId;
+    if (user.role === "Murid") {
+      targetUserId = user.id;
+    } else {
+      if (!targetUserId) {
+        targetUserId = user.id;
+      }
+    }
+
     const log = await prisma.maintenanceLog.create({
       data: {
         machineId: data.machineId,
-        userId: data.userId,
+        userId: targetUserId,
         task: data.task,
         status: data.status,
         notes: data.notes

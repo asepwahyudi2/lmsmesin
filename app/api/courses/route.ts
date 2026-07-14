@@ -11,12 +11,18 @@ export async function GET() {
     }
 
     let courses: any[] = [];
-    if (session.user.role === "Admin") {
+    if (session.user.role === "Admin" || session.user.role === "Kepsek") {
       courses = await prisma.course.findMany();
     } else if (session.user.role === "Guru") {
       courses = await prisma.course.findMany({
         where: { teacherId: session.user.id }
       });
+    } else if (session.user.role === "Murid") {
+      const enrollments = await prisma.enrollment.findMany({
+        where: { studentId: session.user.id },
+        include: { course: true }
+      });
+      courses = enrollments.map(e => e.course);
     }
 
     return Response.json({ courses });

@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { requireRole } from "@/lib/authz";
 
 export async function createEvent(
   title: string,
@@ -11,6 +12,7 @@ export async function createEvent(
   type: string
 ) {
   try {
+    await requireRole("Admin", "Guru");
     const event = await prisma.calendarEvent.create({
       data: {
         title,
@@ -46,6 +48,7 @@ export async function getEvents(startDate: Date, endDate: Date) {
 
 export async function deleteEvent(id: string) {
   try {
+    await requireRole("Admin", "Guru");
     await prisma.calendarEvent.delete({
       where: { id },
     });

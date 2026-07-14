@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { requireSession, requireRole } from "@/lib/authz";
 
 const POINTS_MAP: Record<string, number> = {
   Ringan: 5,
@@ -11,7 +12,15 @@ const POINTS_MAP: Record<string, number> = {
 
 export async function getViolations(studentId?: string) {
   try {
-    const whereClause: any = studentId ? { studentId } : {};
+    const user = await requireSession();
+    let whereClause: any = {};
+    
+    if (user.role === "Murid") {
+      whereClause.studentId = user.id;
+    } else {
+      whereClause = studentId ? { studentId } : {};
+    }
+    
     const violations = await prisma.violation.findMany({
       where: whereClause,
       include: {
@@ -33,6 +42,7 @@ export async function createViolation(data: {
   reportedBy: string;
 }) {
   try {
+    const user = await requireRole("Admin", "Guru");
     const points = POINTS_MAP[data.category] || 0;
     const violation = await prisma.violation.create({
       data: {
@@ -40,7 +50,7 @@ export async function createViolation(data: {
         category: data.category,
         description: data.description,
         points,
-        reportedBy: data.reportedBy,
+        reportedBy: user.id,
       },
     });
     revalidatePath("/violations");

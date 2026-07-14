@@ -47,7 +47,7 @@ model Course {
   class       String
   description String?
   teacherId   String
-  teacher     User      @relation("TeacherCourses", fields: [teacherId], references: [id])
+  teacher     User      @relation("TeacherCourses", fields: [teacherId], references: [id], onDelete: Cascade)
 
   modules     Module[]
   jobSheets   JobSheet[]
@@ -59,75 +59,88 @@ model Course {
   forumPosts  ForumPost[]
   attitudeGrades AttitudeGrade[]
   teacherJournals TeacherJournal[]
+
+  @@index([teacherId])
 }
 
 model Enrollment {
   id                String   @id @default(cuid())
   studentId         String
-  student     User     @relation(fields: [studentId], references: [id])
+  student     User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
   courseId          String
-  course            Course   @relation(fields: [courseId], references: [id])
+  course            Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
   createdAt         DateTime @default(now())
   
   // Shift & Jadwal Mesin Praktik
   shift             String?  // Shift Pagi, Shift Siang
   assignedMachineId String?
-  assignedMachine   Machine? @relation(fields: [assignedMachineId], references: [id])
+  assignedMachine   Machine? @relation(fields: [assignedMachineId], references: [id], onDelete: SetNull)
 
   @@unique([studentId, courseId])
+  @@index([courseId])
+  @@index([assignedMachineId])
 }
 
 model Module {
   id       String @id @default(cuid())
   courseId String
-  course   Course @relation(fields: [courseId], references: [id])
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
   title    String
   fileType String
   fileUrl  String
   fileName String? // Nama file asli untuk upload
+
+  @@index([courseId])
 }
 
 model JobSheet {
   id             String @id @default(cuid())
   courseId       String
-  course         Course @relation(fields: [courseId], references: [id])
+  course         Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
   title          String
-  objective      String?
-  tools          String // JSON stringified array or comma separated
-  materials      String // JSON stringified array or comma separated
-  sop            String // JSON stringified array or comma separated
-  safety         String // JSON stringified array or comma separated
+  objective      String? @db.Text
+  tools          String @db.Text
+  materials      String @db.Text
+  sop            String @db.Text
+  safety         String @db.Text
   cadUrl         String? // URL file STL/STEP untuk visualisasi 3D
   status         String @default("Belum Dikerjakan")
   dueDate        DateTime?
   createdAt      DateTime @default(now())
+
+  @@index([courseId])
 }
 
 model Attendance {
   id        String   @id @default(cuid())
   courseId  String
-  course    Course   @relation(fields: [courseId], references: [id])
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
   studentId String
-  student   User     @relation(fields: [studentId], references: [id])
+  student   User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
   date      DateTime @default(now())
   status    String   // "Hadir", "Izin", "Sakit", "Alpa"
+
+  @@index([courseId, date])
+  @@index([studentId])
 }
 
 model Assignment {
   id          String   @id @default(cuid())
   courseId    String
-  course      Course   @relation(fields: [courseId], references: [id])
+  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
   title       String
   deadline    DateTime
   submissions AssignmentSubmission[]
+
+  @@index([courseId])
 }
 
 model AssignmentSubmission {
   id           String     @id @default(cuid())
   assignmentId String
-  assignment   Assignment @relation(fields: [assignmentId], references: [id])
+  assignment   Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
   studentId    String
-  student      User       @relation(fields: [studentId], references: [id])
+  student      User       @relation(fields: [studentId], references: [id], onDelete: Cascade)
   fileUrl      String     // Ini bertindak sebagai link Laporan atau Foto Benda Kerja
   fileName     String?    // Nama file asli yang diupload
   
@@ -140,14 +153,17 @@ model AssignmentSubmission {
   feedback     String?
   status       String     @default("Belum Mengumpulkan")
   createdAt    DateTime   @default(now())
+
+  @@index([assignmentId])
+  @@index([studentId])
 }
 
 model Grade {
   id         String   @id @default(cuid())
   studentId  String
-  student    User     @relation(fields: [studentId], references: [id])
+  student    User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
   courseId   String
-  course     Course   @relation(fields: [courseId], references: [id])
+  course     Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
   daily      Float    @default(0)
   practical  Float    @default(0)
   midterm    Float    @default(0)
@@ -156,6 +172,7 @@ model Grade {
   updatedAt  DateTime @updatedAt
 
   @@unique([studentId, courseId])
+  @@index([courseId])
 }
 
 model Machine {
@@ -182,23 +199,28 @@ model Announcement {
 model Logbook {
   id          String   @id @default(cuid())
   studentId   String
-  student     User     @relation(fields: [studentId], references: [id])
+  student     User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
   machineId   String
-  machine     Machine  @relation(fields: [machineId], references: [id])
+  machine     Machine  @relation(fields: [machineId], references: [id], onDelete: Cascade)
   activity    String   // Aktivitas praktik (misal: Membubut Poros Bertingkat)
   duration    Int      // Jam (misal: 3 jam)
   date        DateTime @default(now())
   notes       String?  // Catatan kendala mesin/material
+
+  @@index([studentId])
+  @@index([machineId])
 }
 
 model Portfolio {
   id           String   @id @default(cuid())
   studentId    String
-  student      User     @relation(fields: [studentId], references: [id])
+  student      User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
   workpieceName String   // Nama benda kerja (contoh: Palu Cakar, Ulir Segitiga)
   imageUrl     String   // Link foto fisik benda kerja
   grade        Int      // Nilai dari guru
   date         DateTime @default(now())
+
+  @@index([studentId])
 }
 
 model Tool {
@@ -213,68 +235,84 @@ model Tool {
 model ToolLoan {
   id          String   @id @default(cuid())
   studentId   String
-  student     User     @relation(fields: [studentId], references: [id])
+  student     User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
   toolId      String
-  tool        Tool     @relation(fields: [toolId], references: [id])
+  tool        Tool     @relation(fields: [toolId], references: [id], onDelete: Cascade)
   quantity    Int      @default(1)
   status      String   // Pending, Borrowed, Returned, Rejected
   loanDate    DateTime @default(now())
   returnDate  DateTime?
   notes       String?  // Contoh: 'Kembali dengan jangka sorong tergores'
+
+  @@index([studentId])
+  @@index([toolId])
 }
 
 model ForumPost {
   id        String   @id @default(cuid())
   courseId  String
-  course    Course   @relation(fields: [courseId], references: [id])
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
   authorId  String
-  author    User     @relation(fields: [authorId], references: [id])
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
   content   String
   createdAt DateTime @default(now())
+
+  @@index([courseId])
+  @@index([authorId])
 }
 
 model MaintenanceLog {
   id          String   @id @default(cuid())
   machineId   String
-  machine     Machine  @relation(fields: [machineId], references: [id])
+  machine     Machine  @relation(fields: [machineId], references: [id], onDelete: Cascade)
   userId      String
-  user        User     @relation(fields: [userId], references: [id]) // Guru atau Siswa yang merawat
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade) // Guru atau Siswa yang merawat
   task        String   // Tugas perawatan (misal: Ganti oli, bersihkan gram, cek kelistrikan)
   status      String   // Completed, Pending
   date        DateTime @default(now())
   notes       String?
+
+  @@index([machineId])
+  @@index([userId])
 }
 
 model Quiz {
   id          String   @id @default(cuid())
   courseId    String
-  course      Course   @relation(fields: [courseId], references: [id])
+  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
   title       String
   description String?
   timeLimit   Int      // Batas waktu pengerjaan dalam menit (misal: 30 menit)
   questions   Question[]
   attempts    QuizAttempt[]
   createdAt   DateTime @default(now())
+
+  @@index([courseId])
 }
 
 model Question {
   id          String   @id @default(cuid())
   quizId      String
-  quiz        Quiz     @relation(fields: [quizId], references: [id])
+  quiz        Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
   text        String   // Pertanyaan kuis (teks atau gambar)
   options     String   // Pilihan jawaban (JSON stringified array, e.g. ["A", "B", "C", "D"])
   answer      String   // Jawaban yang benar (misal: "A" atau teks yang cocok)
+
+  @@index([quizId])
 }
 
 model QuizAttempt {
   id          String   @id @default(cuid())
   quizId      String
-  quiz        Quiz     @relation(fields: [quizId], references: [id])
+  quiz        Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
   studentId   String
-  student     User     @relation(fields: [studentId], references: [id])
+  student     User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
   score       Int      // 0-100
   answers     String   // Jawaban murid (JSON stringified key-value, e.g. {"soalId1": "A"})
   submittedAt DateTime @default(now())
+
+  @@index([quizId])
+  @@index([studentId])
 }
 
 model Notification {
@@ -286,16 +324,18 @@ model Notification {
   read      Boolean  @default(false)
   createdAt DateTime @default(now())
 
-  user      User     @relation(fields: [userId], references: [id])
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read])
 }
 
 // Nilai Sikap (Attitude/Behavior Grade)
 model AttitudeGrade {
   id        String   @id @default(cuid())
   studentId String
-  student   User     @relation(fields: [studentId], references: [id])
+  student   User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
   courseId  String
-  course    Course   @relation(fields: [courseId], references: [id])
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
   discipline Float   @default(0)  // Kedisiplinan (0-100)
   responsibility Float @default(0) // Tanggung jawab (0-100)
   cleanliness   Float  @default(0) // Kebersihan & kerapian (0-100)
@@ -304,6 +344,7 @@ model AttitudeGrade {
   updatedAt     DateTime @updatedAt
 
   @@unique([studentId, courseId, semester])
+  @@index([courseId])
 }
 
 // Kalender Akademik
@@ -322,28 +363,34 @@ model CalendarEvent {
 model Violation {
   id          String   @id @default(cuid())
   studentId   String
-  student     User     @relation("ViolationStudent", fields: [studentId], references: [id])
+  student     User     @relation("ViolationStudent", fields: [studentId], references: [id], onDelete: Cascade)
   reportedBy  String
-  reporter    User     @relation("ReportedViolations", fields: [reportedBy], references: [id])
+  reporter    User     @relation("ReportedViolations", fields: [reportedBy], references: [id], onDelete: Cascade)
   category    String   // Ringan, Sedang, Berat
   description String
   points      Int      @default(0)
   date        DateTime @default(now())
   createdAt   DateTime @default(now())
+
+  @@index([studentId])
+  @@index([reportedBy])
 }
 
 // Jurnal Mengajar Guru
 model TeacherJournal {
   id        String   @id @default(cuid())
   teacherId String
-  teacher   User     @relation("TeacherJournals", fields: [teacherId], references: [id])
+  teacher   User     @relation("TeacherJournals", fields: [teacherId], references: [id], onDelete: Cascade)
   courseId  String
-  course    Course   @relation(fields: [courseId], references: [id])
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
   date      DateTime @default(now())
   topic     String   // Materi yang diajarkan
   summary   String?  // Catatan kegiatan
   obstacles String?  // Kendala
   createdAt DateTime @default(now())
+
+  @@index([teacherId])
+  @@index([courseId])
 }
 
 model PasswordResetToken {
@@ -374,6 +421,8 @@ model ActivityLog {
   details   String?  // JSON string
   ipAddress String?
   createdAt DateTime @default(now())
+
+  @@index([userId])
 }
 
 model UserSession {
@@ -387,6 +436,8 @@ model UserSession {
   createdAt DateTime @default(now())
   expiresAt DateTime
   pushSubscription String? // JSON string of subscription
+
+  @@index([userId])
 }
 
 model MachineReservation {
@@ -400,4 +451,7 @@ model MachineReservation {
   endTime    DateTime
   status     String   // "Pending", "Approved", "Cancelled", "Completed"
   createdAt  DateTime @default(now())
+
+  @@index([machineId])
+  @@index([studentId])
 }

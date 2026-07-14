@@ -12,7 +12,7 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 # Set env dummy agar build lancar tanpa DB koneksi
-ENV DATABASE_URL="file:./dev.db"
+ENV DATABASE_URL="mysql://dummy:dummy@localhost:3306/dummy"
 ENV NEXTAUTH_SECRET="dummy-secret-for-building-only-change-in-prod"
 RUN npx prisma generate
 RUN npm run build
@@ -29,7 +29,6 @@ COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/prisma ./prisma
-COPY --from=builder /app/server.js ./server.js
 
 # Pastikan folder upload ada dan writable
 RUN mkdir -p public/uploads && chown -R nextjs:nodejs public/uploads
@@ -40,5 +39,5 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-# Jalankan migrasi prisma sebelum startup (jika pakai MySQL, npx prisma db push otomatis di production atau gunakan prisma migrate)
-CMD ["sh", "-c", "npx prisma db push && npm run start"]
+# Use prisma migrate deploy instead of db push for production
+CMD ["sh", "-c", "npx prisma migrate deploy && npm run start"]

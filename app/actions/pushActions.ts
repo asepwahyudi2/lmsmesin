@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { cookies } from "next/headers";
 import webPush from "web-push";
 
+import { requireSession } from "@/lib/authz";
+
 // Konfigurasi Web Push
 const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || "";
 const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY || "";
@@ -19,11 +21,20 @@ if (vapidPublicKey && vapidPrivateKey) {
 // Mendaftarkan Push Subscription Perangkat
 export async function subscribeToPush(subscriptionJson: string) {
   try {
+    const user = await requireSession();
     const cookieStore = await cookies();
     const sessionToken = cookieStore.get("lms-session-token")?.value;
 
     if (!sessionToken) {
       throw new Error("Sesi perangkat tidak ditemukan.");
+    }
+
+    const sessionRecord = await prisma.userSession.findUnique({
+      where: { token: sessionToken }
+    });
+
+    if (!sessionRecord || sessionRecord.userId !== user.id) {
+      throw new Error("Akses ditolak.");
     }
 
     // Update session dengan push subscription

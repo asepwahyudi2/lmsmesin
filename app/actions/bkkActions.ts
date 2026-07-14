@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { requireRole } from "@/lib/authz";
 
 export async function getVacancies() {
   try {
@@ -23,6 +24,7 @@ export async function createVacancy(data: {
   contact: string;
 }) {
   try {
+    await requireRole("Admin", "Guru");
     const vacancy = await prisma.jobVacancy.create({
       data: {
         company: data.company,
@@ -43,6 +45,7 @@ export async function createVacancy(data: {
 
 export async function deleteVacancy(id: string) {
   try {
+    await requireRole("Admin", "Guru");
     await prisma.jobVacancy.delete({ where: { id } });
     revalidatePath("/bkk");
     return { success: true };

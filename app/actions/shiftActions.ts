@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { requireRole } from "@/lib/authz";
 
 export async function updateStudentShiftMachine(
   studentId: string,
@@ -10,6 +11,7 @@ export async function updateStudentShiftMachine(
   assignedMachineId: string | null
 ) {
   try {
+    await requireRole("Admin", "Guru");
     await prisma.enrollment.update({
       where: {
         studentId_courseId: { studentId, courseId }

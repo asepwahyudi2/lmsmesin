@@ -2,11 +2,14 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { requireRole } from "@/lib/authz";
 
 type ShiftType = "Pagi" | "Siang";
 
 export async function autoAssignShift(courseId: string) {
   try {
+    await requireRole("Admin", "Guru");
+    
     const enrollments = await prisma.enrollment.findMany({
       where: { courseId },
       include: { student: true },
@@ -44,8 +47,8 @@ export async function autoAssignShift(courseId: string) {
       }
     }
 
-    for (const u of updates) {
-      await prisma.enrollment.update({
+    await prisma.$transaction(
+      updates.map(u => prisma.enrollment.update({
         where: {
           studentId_courseId: { studentId: u.studentId, courseId },
         },
@@ -53,8 +56,8 @@ export async function autoAssignShift(courseId: string) {
           shift: u.shift,
           assignedMachineId: u.machineId,
         },
-      });
-    }
+      }))
+    );
 
     revalidatePath(`/courses/${courseId}`);
     revalidatePath("/attendance");
@@ -66,6 +69,8 @@ export async function autoAssignShift(courseId: string) {
 
 export async function rotateMachineAssignments(courseId: string) {
   try {
+    await requireRole("Admin", "Guru");
+    
     const enrollments = await prisma.enrollment.findMany({
       where: { courseId, assignedMachineId: { not: null } },
       orderBy: { assignedMachineId: "asc" },
@@ -80,17 +85,19 @@ export async function rotateMachineAssignments(courseId: string) {
       return { success: false, error: "Tidak ada mesin yang tersedia." };
     }
 
-    for (let i = 0; i < enrollments.length; i++) {
-      const currentMachineIdx = machines.findIndex(m => m.id === enrollments[i].assignedMachineId);
+    const updateOps = enrollments.map((enrollment, i) => {
+      const currentMachineIdx = machines.findIndex(m => m.id === enrollment.assignedMachineId);
       const nextMachineIdx = (currentMachineIdx + 1) % machines.length;
 
-      await prisma.enrollment.update({
+      return prisma.enrollment.update({
         where: {
-          studentId_courseId: { studentId: enrollments[i].studentId, courseId },
+          studentId_courseId: { studentId: enrollment.studentId, courseId },
         },
         data: { assignedMachineId: machines[nextMachineIdx].id },
       });
-    }
+    });
+
+    await prisma.$transaction(updateOps);
 
     revalidatePath(`/courses/${courseId}`);
     revalidatePath("/attendance");
@@ -102,6 +109,8 @@ export async function rotateMachineAssignments(courseId: string) {
 
 export async function getScheduleStatus(courseId: string) {
   try {
+    await requireRole("Admin", "Guru", "Kepsek");
+    
     const enrollments = await prisma.enrollment.findMany({
       where: { courseId },
       include: {
