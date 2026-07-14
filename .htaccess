@@ -1,0 +1,16 @@
+# LMS Mesin - cPanel Passenger configuration
+PassengerAppRoot "/home/gamemodi/public_html/lmsmesin"
+PassengerBaseURI "/lmsmesin"
+PassengerNodejs "/home/gamemodi/nodevenv/public_html/lmsmesin/20/bin/node"
+PassengerAppType node
+PassengerStartupFile server.js
+
+# Custom rules
+DirectoryIndex server.js
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteRule ^$ http://127.0.0.1:3000/ [P,L]
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule ^(.*)$ http://127.0.0.1:3000/$1 [P,L]
+</IfModule>
