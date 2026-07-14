@@ -7,11 +7,14 @@ import { ToastProvider } from "@/lib/toast";
 import { PushRegistrar } from "./PushRegistrar";
 
 export function Providers({ children }: { children: React.ReactNode }) {
+  const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
+
   useEffect(() => {
     if ("serviceWorker" in navigator && process.env.NODE_ENV === "production") {
       window.addEventListener("load", () => {
+        const swPath = basePath ? `${basePath}/sw.js` : "/sw.js";
         navigator.serviceWorker
-          .register("/sw.js")
+          .register(swPath)
           .then((reg) => {
             console.log("Service Worker berhasil didaftarkan:", reg.scope);
           })
@@ -20,10 +23,12 @@ export function Providers({ children }: { children: React.ReactNode }) {
           });
       });
     }
-  }, []);
+  }, [basePath]);
+
+  const authBasePath = basePath ? `${basePath}/api/auth` : undefined;
 
   return (
-    <SessionProvider>
+    <SessionProvider basePath={authBasePath}>
       <AppProvider>
         <ToastProvider>
           <PushRegistrar />
