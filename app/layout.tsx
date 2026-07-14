@@ -8,10 +8,12 @@ export const viewport: Viewport = {
   themeColor: "#f59e0b",
 };
 
+const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
+
 export const metadata: Metadata = {
   title: "LMS SMK YPWKS Cilegon",
   description: "Vocational LMS for Mechanical Engineering",
-  manifest: "/manifest.json",
+  manifest: basePath ? `${basePath}/manifest.json` : "/manifest.json",
 };
 
 export default function RootLayout({
