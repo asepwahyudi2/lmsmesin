@@ -1,1 +1,0 @@
-globalThis.__RSC_MANIFEST=(globalThis.__RSC_MANIFEST||{});globalThis.__RSC_MANIFEST["/api/backup/route"]={"moduleLoading":{"prefix":"/lmsmesin/_next/"},"ssrModuleMapping":{},"edgeSSRModuleMapping":{},"clientModules":{},"entryCSSFiles":{"C:\\Users\\Infinix Inbook X1\\Music\\app\\api\\backup\\route":[]},"rscModuleMapping":{},"edgeRscModuleMapping":{}};
