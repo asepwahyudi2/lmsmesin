@@ -10,7 +10,7 @@ export const viewport: Viewport = {
   themeColor: "#f59e0b",
 };
 
-const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
+const basePath = process.env.VERCEL ? "" : (process.env.NEXT_PUBLIC_BASE_PATH || "");
 
 export const metadata: Metadata = {
   title: "LMS SMK YPWKS Cilegon",

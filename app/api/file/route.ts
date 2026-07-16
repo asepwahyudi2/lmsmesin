@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import path from "path";
-import { promises as fs } from "fs";
 import os from "os";
 
 export const dynamic = "force-dynamic";
@@ -51,6 +50,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "File type not allowed" }, { status: 403 });
     }
 
+    const { promises: fs } = await import("fs");
     const tmpDir = path.join(os.tmpdir(), "uploads");
     const publicDir = path.join(process.cwd(), "public", "uploads");
 

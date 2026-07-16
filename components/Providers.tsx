@@ -7,7 +7,7 @@ import { ToastProvider } from "@/lib/toast";
 import { PushRegistrar } from "./PushRegistrar";
 
 export function Providers({ children }: { children: React.ReactNode }) {
-  const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
+  const basePath = process.env.VERCEL ? "" : (process.env.NEXT_PUBLIC_BASE_PATH || "");
 
   useEffect(() => {
     if ("serviceWorker" in navigator && process.env.NODE_ENV === "production") {

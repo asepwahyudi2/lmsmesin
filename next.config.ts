@@ -27,7 +27,7 @@ const securityHeaders = [
   },
 ];
 
-const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
+const basePath = process.env.VERCEL ? "" : (process.env.NEXT_PUBLIC_BASE_PATH || "");
 
 const nextConfig: NextConfig = {
   serverExternalPackages: ["bcryptjs", "@prisma/client", "bcryptjs", "speakeasy", "web-push"],
