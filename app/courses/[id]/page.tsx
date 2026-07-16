@@ -5,6 +5,10 @@ import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import ClientCoursePage from "./ClientCoursePage";
 
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
+
 export default async function CourseDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
 

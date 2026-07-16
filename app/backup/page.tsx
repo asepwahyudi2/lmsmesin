@@ -5,6 +5,10 @@ import { redirect } from "next/navigation";
 import ClientBackupPage from "./ClientBackupPage";
 import { getBackupInfo } from "../actions/backupActions";
 
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
+
 export default async function BackupPage() {
   const session = await getServerSession(authOptions);
 

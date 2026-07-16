@@ -1,0 +1,9 @@
+{
+  "framework": "nextjs",
+  "buildCommand": "npm run vercel-build",
+  "installCommand": "npm install",
+  "env": {
+    "PRISMA_CLIENT_ENGINE_TYPE": "library"
+  },
+  "regions": ["sin1"]
+}

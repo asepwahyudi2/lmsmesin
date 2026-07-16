@@ -1,9 +1,15 @@
-process.env.PRISMA_CLIENT_ENGINE_TYPE = "library";
 import { PrismaClient } from '@prisma/client';
 
-const globalForPrisma = global as unknown as { prisma: PrismaClient };
+const globalForPrisma = globalThis as unknown as {
+  prisma: PrismaClient | undefined;
+};
 
-// Di Prisma 5, cukup gunakan instance PrismaClient biasa
-export const prisma = globalForPrisma.prisma || new PrismaClient();
+const prismaClientSingleton = () => {
+  return new PrismaClient({
+    log: process.env.NODE_ENV === 'production' ? ['error'] : ['error', 'warn'],
+  });
+};
 
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
+export const prisma = globalForPrisma.prisma ?? prismaClientSingleton();
+
+globalForPrisma.prisma = prisma;

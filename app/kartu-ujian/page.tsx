@@ -5,6 +5,10 @@ import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import ClientKartuUjianPage from "./ClientKartuUjianPage";
 
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
+
 export default async function KartuUjianPage() {
   const session = await getServerSession(authOptions);
 

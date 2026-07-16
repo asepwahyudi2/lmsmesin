@@ -4,9 +4,14 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build --webpack",
-    "start": "node server.js",
+    "build": "next build",
+    "vercel-build": "prisma generate && next build",
+    "postinstall": "prisma generate",
+    "start": "next start",
+    "start:cpanel": "node server.js",
     "start:next": "next start",
+    "db:migrate": "prisma migrate deploy",
+    "db:seed": "npx tsx prisma/seed.ts",
     "lint": "eslint"
   },
   "dependencies": {
@@ -25,6 +30,7 @@
     "qrcode": "^1.5.4",
     "react": "19.2.4",
     "react-dom": "19.2.4",
+    "@vercel/blob": "^1.1.1",
     "recharts": "^3.9.2",
     "speakeasy": "^2.0.0",
     "tailwind-merge": "^3.6.0",

@@ -1,5 +1,6 @@
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-1.1.x", "debian-openssl-3.0.x", "linux-musl-openssl-3.0.x", "rhel-openssl-3.0.x", "linux-musl-arm64-openssl-3.0.x"]
 }
 
 datasource db {
@@ -87,7 +88,7 @@ model Module {
   course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
   title    String
   fileType String
-  fileUrl  String
+  fileUrl  String @db.LongText
   fileName String? // Nama file asli untuk upload
 
   @@index([courseId])
@@ -103,7 +104,7 @@ model JobSheet {
   materials      String @db.Text
   sop            String @db.Text
   safety         String @db.Text
-  cadUrl         String? // URL file STL/STEP untuk visualisasi 3D
+  cadUrl         String? @db.LongText // URL file STL/STEP untuk visualisasi 3D
   status         String @default("Belum Dikerjakan")
   dueDate        DateTime?
   createdAt      DateTime @default(now())
@@ -141,7 +142,7 @@ model AssignmentSubmission {
   assignment   Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
   studentId    String
   student      User       @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  fileUrl      String     // Ini bertindak sebagai link Laporan atau Foto Benda Kerja
+  fileUrl      String     @db.LongText // Ini bertindak sebagai link Laporan atau Foto Benda Kerja
   fileName     String?    // Nama file asli yang diupload
   
   // Rubrik Penilaian Bengkel Mesin
@@ -216,7 +217,7 @@ model Portfolio {
   studentId    String
   student      User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
   workpieceName String   // Nama benda kerja (contoh: Palu Cakar, Ulir Segitiga)
-  imageUrl     String   // Link foto fisik benda kerja
+  imageUrl     String   @db.LongText // Link foto fisik benda kerja
   grade        Int      // Nilai dari guru
   date         DateTime @default(now())
 
@@ -295,8 +296,8 @@ model Question {
   quizId      String
   quiz        Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
   text        String   // Pertanyaan kuis (teks atau gambar)
-  options     String   // Pilihan jawaban (JSON stringified array, e.g. ["A", "B", "C", "D"])
-  answer      String   // Jawaban yang benar (misal: "A" atau teks yang cocok)
+  options     String   @db.LongText // Pilihan jawaban (JSON stringified array)
+  answer      String   @db.Text   // Jawaban yang benar
 
   @@index([quizId])
 }
@@ -308,7 +309,7 @@ model QuizAttempt {
   studentId   String
   student     User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
   score       Int      // 0-100
-  answers     String   // Jawaban murid (JSON stringified key-value, e.g. {"soalId1": "A"})
+  answers     String   @db.LongText // Jawaban murid (JSON stringified key-value)
   submittedAt DateTime @default(now())
 
   @@index([quizId])
@@ -435,7 +436,7 @@ model UserSession {
   lastActive DateTime @default(now())
   createdAt DateTime @default(now())
   expiresAt DateTime
-  pushSubscription String? // JSON string of subscription
+  pushSubscription String? @db.LongText // JSON string of subscription
 
   @@index([userId])
 }

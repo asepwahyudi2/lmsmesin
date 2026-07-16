@@ -5,19 +5,15 @@ interface RateLimitRecord {
   resetTime: number;
 }
 
-// In-memory store (untuk production-grade, Redis lebih direkomendasikan, tapi in-memory sangat cukup untuk cPanel/VPS single-instance)
 const ipCache = new Map<string, RateLimitRecord>();
 
-// Bersihkan cache usang tiap 10 menit agar hemat memori
-if (typeof global !== "undefined") {
-  setInterval(() => {
-    const now = Date.now();
-    for (const [ip, record] of ipCache.entries()) {
-      if (now > record.resetTime) {
-        ipCache.delete(ip);
-      }
+function cleanupExpired() {
+  const now = Date.now();
+  for (const [ip, record] of ipCache.entries()) {
+    if (now > record.resetTime) {
+      ipCache.delete(ip);
     }
-  }, 10 * 60 * 1000);
+  }
 }
 
 export async function getClientIp(): Promise<string> {
@@ -30,7 +26,6 @@ export async function getClientIp(): Promise<string> {
     const realIp = headerList.get("x-real-ip");
     if (realIp) return realIp;
   } catch (_e) {
-    // Di luar request context
   }
   return "127.0.0.1";
 }
@@ -40,6 +35,7 @@ export async function rateLimit(limit: number, durationMs: number): Promise<{
   remaining: number;
   resetTime: number;
 }> {
+  cleanupExpired();
   const ip = await getClientIp();
   const now = Date.now();
   

@@ -23,14 +23,14 @@ const securityHeaders = [
   },
   {
     key: "Content-Security-Policy",
-    value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://api.qrserver.com; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data: https://api.qrserver.com https://threejs.org; connect-src 'self' https://api.qrserver.com; media-src 'self'; font-src 'self' data:; object-src 'none';",
+    value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://api.qrserver.com; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data: https://api.qrserver.com https://threejs.org https://*.public.blob.vercel-storage.com; connect-src 'self' https://api.qrserver.com https://*.public.blob.vercel-storage.com; media-src 'self' https://*.public.blob.vercel-storage.com; font-src 'self' data:; object-src 'none';",
   },
 ];
 
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
 
 const nextConfig: NextConfig = {
-  serverExternalPackages: ["bcryptjs"],
+  serverExternalPackages: ["bcryptjs", "@prisma/client", "bcryptjs", "speakeasy", "web-push"],
   basePath: basePath || undefined,
   typescript: {
     ignoreBuildErrors: true,
@@ -39,14 +39,9 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       { protocol: "https", hostname: "api.qrserver.com" },
       { protocol: "https", hostname: "threejs.org" },
+      { protocol: "https", hostname: "*.public.blob.vercel-storage.com" },
+      { protocol: "https", hostname: "**.public.blob.vercel-storage.com" },
     ],
-  },
-  webpack: (config) => {
-    config.resolve.alias = {
-      ...config.resolve.alias,
-      '@': require('path').resolve(__dirname),
-    };
-    return config;
   },
   async headers() {
     return [

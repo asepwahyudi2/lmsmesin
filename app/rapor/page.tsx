@@ -5,6 +5,10 @@ import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import ClientRaporPage from "./ClientRaporPage";
 
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
+
 export default async function RaporPage() {
   const session = await getServerSession(authOptions);
 

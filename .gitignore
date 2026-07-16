@@ -14,11 +14,13 @@
 /coverage
 
 # next.js
-# /.next/
+/.next/
 /out/
+.next/cache
 
 # production
 /build
+/dist
 
 # misc
 .DS_Store
@@ -45,10 +47,15 @@ yarn-error.log*
 
 # vercel
 .vercel
+.vercel.json
 
-# typescript
-*.tsbuildinfo
+# build output should never be committed
+/.next
+/out
+/build
+/dist
 next-env.d.ts
+tsconfig.tsbuildinfo
 
 /lib/generated/prisma
 
@@ -56,3 +63,7 @@ next-env.d.ts
 setup-local.ps1
 start-local.ps1
 docker-compose.override.yml
+
+# uploads temp local (keep folder but ignore contents except .gitkeep)
+public/uploads/*
+!public/uploads/.gitkeep

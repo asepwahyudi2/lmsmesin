@@ -5,6 +5,10 @@ import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import ClientUsersPage from "./ClientUsersPage";
 
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
+
 interface PageProps {
   searchParams: Promise<{
     search?: string;
