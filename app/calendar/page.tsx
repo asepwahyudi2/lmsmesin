@@ -4,8 +4,7 @@ import { authOptions } from "../api/auth/[...nextauth]/options";
 import { redirect } from "next/navigation";
 import ClientCalendarPage from "./ClientCalendarPage";
 
-export const dynamic = "force-dynamic";
-export const runtime = "nodejs";
+
 
 
 export default async function CalendarPage() {

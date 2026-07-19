@@ -5,6 +5,7 @@ interface RateLimitRecord {
   resetTime: number;
 }
 
+const MAX_CACHE_SIZE = 10000;
 const ipCache = new Map<string, RateLimitRecord>();
 
 function cleanupExpired() {
@@ -12,6 +13,18 @@ function cleanupExpired() {
   for (const [ip, record] of ipCache.entries()) {
     if (now > record.resetTime) {
       ipCache.delete(ip);
+    }
+  }
+}
+
+function pruneCache() {
+  if (ipCache.size > MAX_CACHE_SIZE) {
+    const entriesToDelete = Math.floor(ipCache.size - MAX_CACHE_SIZE * 0.9);
+    let deleted = 0;
+    for (const [ip] of ipCache.entries()) {
+      if (deleted >= entriesToDelete) break;
+      ipCache.delete(ip);
+      deleted++;
     }
   }
 }
@@ -25,7 +38,8 @@ export async function getClientIp(): Promise<string> {
     }
     const realIp = headerList.get("x-real-ip");
     if (realIp) return realIp;
-  } catch (_e) {
+  } catch (e) {
+    console.warn("Failed to get client IP:", e);
   }
   return "127.0.0.1";
 }
@@ -36,6 +50,7 @@ export async function rateLimit(limit: number, durationMs: number): Promise<{
   resetTime: number;
 }> {
   cleanupExpired();
+  pruneCache();
   const ip = await getClientIp();
   const now = Date.now();
   
@@ -53,7 +68,8 @@ export async function rateLimit(limit: number, durationMs: number): Promise<{
   
   const remaining = Math.max(0, limit - record.count);
   
-  if (record.count > limit) {
+  if (record.count >= limit) {
+    console.warn(`[Rate Limit] IP ${ip} exceeded limit (${record.count}/${limit})`);
     return {
       success: false,
       remaining: 0,

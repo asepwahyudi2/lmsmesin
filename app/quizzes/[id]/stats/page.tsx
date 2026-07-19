@@ -5,8 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import ClientQuizStatsPage from "./ClientQuizStatsPage";
 
-export const dynamic = "force-dynamic";
-export const runtime = "nodejs";
+
 
 
 interface PageProps {

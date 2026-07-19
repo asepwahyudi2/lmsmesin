@@ -5,8 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import ClientCreateQuizPage from "./ClientCreateQuizPage";
 
-export const dynamic = "force-dynamic";
-export const runtime = "nodejs";
+
 
 
 export default async function CreateQuizPage() {

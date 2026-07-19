@@ -173,7 +173,7 @@ export default function ClientUsersPage({ users, currentUser, totalCount, totalP
   };
 
   const downloadTemplate = () => {
-    const csvContent = "data:text/csv;charset=utf-8,name,email,role,password\nAndi Saputra,andi@lms.local,Murid,Asep12345\nBudi Raharjo,budi@lms.local,Murid,Asep12345";
+    const csvContent = "data:text/csv;charset=utf-8,name,email,role,password\nAndi Saputra,andi@lms.local,Murid,CHANGE_THIS_PASSWORD\nBudi Raharjo,budi@lms.local,Murid,CHANGE_THIS_PASSWORD";
     const link = document.createElement("a");
     link.setAttribute("href", encodeURI(csvContent));
     link.setAttribute("download", "template_import_murid.csv");

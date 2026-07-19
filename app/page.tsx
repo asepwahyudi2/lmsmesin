@@ -10,8 +10,7 @@ import { trackSession } from "@/lib/sessionTracker";
 import { cookies } from "next/headers";
 import { DashboardSync } from "@/components/DashboardSync";
 
-export const dynamic = "force-dynamic";
-export const runtime = "nodejs";
+
 
 
 export default async function Dashboard() {

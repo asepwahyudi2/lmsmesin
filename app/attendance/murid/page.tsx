@@ -5,8 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import ClientMyAttendancePage from "./ClientMyAttendancePage";
 
-export const dynamic = "force-dynamic";
-export const runtime = "nodejs";
+
 
 
 export default async function MyAttendancePage() {

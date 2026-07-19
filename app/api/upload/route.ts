@@ -3,8 +3,6 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/options";
 import path from "path";
 
-export const dynamic = "force-dynamic";
-export const runtime = "nodejs";
 export const maxDuration = 60;
 
 const ALLOWED_MIME_TYPES = new Set([

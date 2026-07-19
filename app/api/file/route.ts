@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import path from "path";
 import os from "os";
 
-export const dynamic = "force-dynamic";
-export const runtime = "nodejs";
+
 
 const ALLOWED_EXT = new Set([
   ".pdf", ".jpg", ".jpeg", ".png", ".webp", ".gif",
