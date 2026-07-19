@@ -86,7 +86,7 @@ export default function LoginPage() {
           <div className="w-16 h-16 rounded-xl bg-amber-500 text-slate-900 flex items-center justify-center mb-4 shadow-lg shadow-amber-500/20">
             <Wrench size={32} />
           </div>
-          <h1 className="text-2xl font-bold text-slate-100 text-center">LMS SMK YPWKS Cilegon</h1>
+          <h1 className="text-2xl font-bold text-slate-100 text-center">LMS Asep Wahyudi</h1>
           <p className="text-slate-400 mt-2 text-center text-sm">
             Portal pembelajaran kejuruan. Silakan masuk.
           </p>
