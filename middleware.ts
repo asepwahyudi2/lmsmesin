@@ -1,22 +1,31 @@
 import { withAuth } from "next-auth/middleware";
+import { NextResponse } from "next/server";
 
-export default withAuth({
-  pages: {
-    signIn: "/login",
+export default withAuth(
+  function middleware(req) {
+    return NextResponse.next();
   },
-  callbacks: {
-    authorized: ({ req, token }) => {
-      const { pathname } = req.nextUrl;
-      // Izinkan akses tanpa token jika rute ada di daftar publik
-      const publicPaths = ["/login", "/register", "/forgot-password", "/reset-password"];
-      if (publicPaths.some(path => pathname.startsWith(path))) {
-        return true;
-      }
-      // Jika halaman butuh login, pastikan token user ada
-      return !!token;
-    }
+  {
+    callbacks: {
+      authorized: ({ req, token }) => {
+        const { pathname } = req.nextUrl;
+        
+        // Daftar halaman publik yang tidak memerlukan login
+        const publicPaths = ["/login", "/register", "/forgot-password", "/reset-password"];
+        
+        if (publicPaths.some(path => pathname.startsWith(path))) {
+          return true;
+        }
+        
+        // Halaman terproteksi membutuhkan token
+        return !!token;
+      },
+    },
+    pages: {
+      signIn: "/login",
+    },
   }
-});
+);
 
 export const config = {
   matcher: [
