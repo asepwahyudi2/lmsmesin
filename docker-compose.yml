@@ -1,47 +1,19 @@
 services:
-  db:
-    image: mariadb:10.11
-    container_name: lms_mariadb
-    restart: always
-    environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      MYSQL_DATABASE: lms_mesin_db
-      MYSQL_USER: lms_user
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
-    volumes:
-      - mariadb_data:/var/lib/mysql
-    networks:
-      - lms_network
-    ports:
-      - "3306:3306"
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-      timeout: 5s
-      retries: 10
-      interval: 5s
-
   web:
     build:
       context: .
       dockerfile: Dockerfile
     container_name: lms_web_app
     restart: always
-    environment:
-      DATABASE_URL: "mysql://lms_user:${MYSQL_PASSWORD}@db:3306/lms_mesin_db"
-      NEXTAUTH_URL: "http://web:3000"
-      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
+    env_file:
+      - .env
+    ports:
+      - "3000:3000"
     volumes:
       - ./uploads:/app/public/uploads
     networks:
-      - lms_network
-    depends_on:
-      db:
-        condition: service_healthy
+      - mariadb_default
 
 networks:
-  lms_network:
-    driver: bridge
-
-volumes:
-  mariadb_data:
-  uploads:
+  mariadb_default:
+    external: true
