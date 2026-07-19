@@ -183,6 +183,15 @@ export default function LoginPage() {
           >
             <Key size={14} /> Lupa Password?
           </Link>
+
+          <div className="mt-4 text-center">
+            <p className="text-xs text-slate-400">
+              Belum punya akun?{" "}
+              <Link href="/register" className="text-amber-500 hover:underline font-semibold">
+                Daftar sekarang
+              </Link>
+            </p>
+          </div>
         </form>
 
         <div className="mt-6 border-t border-slate-700 pt-6">
