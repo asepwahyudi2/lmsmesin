@@ -193,18 +193,6 @@ export default function LoginPage() {
             </p>
           </div>
         </form>
-
-        <div className="mt-6 border-t border-slate-700 pt-6">
-          <p className="text-xs text-center text-slate-500 mb-3">
-            Kredensial Default (Hanya Development)
-            <br />
-            Admin: admin@lms.local / Asep12345
-            <br />
-            Guru: guru@lms.local / Asep12345
-            <br />
-            Murid: murid@lms.local / Asep12345
-          </p>
-        </div>
       </div>
     </div>
   );

@@ -22,6 +22,8 @@ FROM node:20-alpine AS runner
 RUN apk add --no-cache openssl
 WORKDIR /app
 ENV NODE_ENV=production
+ENV CHECKPOINT_DISABLE=1
+ENV PRISMA_TELEMETRY_INFORMATION=do-not-track
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
@@ -40,4 +42,4 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-CMD ["sh", "-c", "npx prisma migrate deploy && npm run start"]
+CMD ["npm", "run", "start"]
