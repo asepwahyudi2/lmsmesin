@@ -154,7 +154,7 @@ export default function ClientCoursesPage({ courses, teachers, currentUser }: Pr
                   required
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="Contoh: Pemesinan Bubut Lanjut" 
+                  placeholder="Contoh: Pemeliharaan Mesin Industri" 
                   className="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-amber-500"
                 />
               </div>
@@ -165,7 +165,7 @@ export default function ClientCoursesPage({ courses, teachers, currentUser }: Pr
                   required
                   value={className}
                   onChange={(e) => setClassName(e.target.value)}
-                  placeholder="Contoh: XII TPM 1" 
+                  placeholder="Contoh: XII TMI 1" 
                   className="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-amber-500"
                 />
               </div>

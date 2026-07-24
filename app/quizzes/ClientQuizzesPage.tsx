@@ -203,7 +203,7 @@ export default function ClientQuizzesPage({ currentUser, quizzes }: Props) {
               <GraduationCap className="text-amber-500" /> Ujian Teori Kejuruan
             </h2>
             <p className="text-slate-400 mt-1">
-              {isMurid ? "Selesaikan kuis untuk menguji pemahaman teori pemesinan Anda." : "Lihat daftar kuis teori dan nilai pengerjaan siswa."}
+              {isMurid ? "Selesaikan kuis untuk menguji pemahaman teori mekanik industri Anda." : "Lihat daftar kuis teori dan nilai pengerjaan siswa."}
             </p>
           </div>
           {isGuruOrAdmin && (

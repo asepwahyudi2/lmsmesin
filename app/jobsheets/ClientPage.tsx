@@ -613,7 +613,7 @@ export default function ClientPage({ currentUser, jobSheets, courses }: Props) {
             </div>
             <div className="p-6 space-y-4">
               <p className="text-xs text-slate-400 leading-relaxed mb-2">
-                Berdasarkan Standard Operating Procedure (SOP) bengkel pemesinan, centang seluruh item APD di bawah ini untuk mengonfirmasi kelayakan praktik Anda:
+                Berdasarkan Standard Operating Procedure (SOP) bengkel mekanik industri, centang seluruh item APD di bawah ini untuk mengonfirmasi kelayakan praktik Anda:
               </p>
               {[
                 "Wearpack Praktik: Wearpack terpasang rapi, kancing lengkap, dimasukkan.",

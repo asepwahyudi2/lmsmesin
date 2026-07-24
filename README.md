@@ -1,6 +1,6 @@
-# LMS SMK YPWKS Cilegon - Teknik Pemesinan
+# LMS SMK YPWKS Cilegon - Teknik Mekanik Industri
 
-Learning Management System (LMS) khusus untuk jurusan **Teknik Pemesinan** SMK YPWKS Cilegon. Mengelola pembelajaran teori, praktik bengkel, manajemen alat/mesin, dan penilaian terintegrasi.
+Learning Management System (LMS) khusus untuk jurusan **Teknik Mekanik Industri** SMK YPWKS Cilegon. Mengelola pembelajaran teori, praktik bengkel, manajemen alat/mesin, dan penilaian terintegrasi.
 
 ## Fitur Utama
 

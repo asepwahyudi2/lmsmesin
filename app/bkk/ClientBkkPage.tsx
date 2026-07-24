@@ -87,7 +87,7 @@ export default function ClientBkkPage({ currentUser, vacancies }: Props) {
             <Briefcase className="text-amber-500" /> Bursa Kerja Khusus (BKK YPWKS)
           </h2>
           <p className="text-slate-400 mt-1">
-            Informasi lowongan magang dan kerja industri untuk siswa dan alumni Teknik Pemesinan.
+            Informasi lowongan magang dan kerja industri untuk siswa dan alumni Teknik Mekanik Industri.
           </p>
         </div>
 
@@ -180,7 +180,7 @@ export default function ClientBkkPage({ currentUser, vacancies }: Props) {
                   required
                   value={position}
                   onChange={(e) => setPosition(e.target.value)}
-                  placeholder="Contoh: Operator Mesin CNC / Bubut" 
+                  placeholder="Contoh: Operator Mesin Industri / Teknisi" 
                   className="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-amber-500"
                 />
               </div>
@@ -229,8 +229,8 @@ export default function ClientBkkPage({ currentUser, vacancies }: Props) {
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Kualifikasi: 
-1. Lulusan SMK Teknik Pemesinan
-2. Menguasai CNC Haas
+1. Lulusan SMK Teknik Mekanik Industri
+2. Menguasai sistem Pneumatik & Hidrolik
 3. Jujur dan Pekerja Keras"
                   className="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-amber-500 resize-none text-xs leading-relaxed"
                 />

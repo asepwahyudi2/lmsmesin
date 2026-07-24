@@ -1,7 +1,7 @@
 {
   "name": "LMS SMK YPWKS Cilegon",
-  "short_name": "LMS Mesin",
-  "description": "Learning Management System Teknik Pemesinan",
+  "short_name": "LMS TMI",
+  "description": "Learning Management System Teknik Mekanik Industri",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0f172a",

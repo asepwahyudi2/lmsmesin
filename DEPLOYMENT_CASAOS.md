@@ -787,7 +787,7 @@ Jika Anda ingin aplikasi muncul di **CasaOS App Store** sebagai custom app:
 ```json
 {
   "name": "LMS SMK YPWKS Cilegon",
-  "description": "Learning Management System untuk Teknik Pemesinan",
+  "description": "Learning Management System untuk Teknik Mekanik Industri",
   "version": "1.0.0",
   "website": "https://lms.local",
   "provider": "LMS Team",

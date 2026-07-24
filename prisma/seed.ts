@@ -59,9 +59,9 @@ async function main() {
     update: {},
     create: {
       id: 'c1',
-      name: 'Teknik Pemesinan Bubut',
-      class: 'XII TPM 1',
-      description: 'Mempelajari teknik dasar dan lanjut pengoperasian mesin bubut konvensional.',
+      name: 'Pemeliharaan Mesin Industri',
+      class: 'XII TMI 1',
+      description: 'Mempelajari pemeliharaan preventif dan korektif mesin-mesin industri, hidrolik, pneumatik, kelistrikan mesin, dan keselamatan kerja.',
       teacherId: guru.id,
     }
   })
@@ -71,9 +71,9 @@ async function main() {
     update: {},
     create: {
       id: 'c2',
-      name: 'Gambar Teknik Manufaktur',
-      class: 'XII TPM 1',
-      description: 'Mempelajari desain berbantuan komputer (CAD) untuk manufaktur.',
+      name: 'Sistem Pneumatik dan Hidrolik',
+      class: 'XII TMI 1',
+      description: 'Mempelajari prinsip kerja, komponen, perancangan sirkuit, dan troubleshooting sistem pneumatik serta hidrolik industri.',
       teacherId: guru.id,
     }
   })
@@ -98,21 +98,22 @@ async function main() {
     create: {
       id: 'j1',
       courseId: course1.id,
-      title: 'Pembuatan Benda Kerja Bertingkat',
-      objective: 'Siswa mampu membubut poros bertingkat sesuai ukuran toleransi.',
-      tools: JSON.stringify(['Mesin Bubut Konvensional', 'Pahat Bubut HSS', 'Jangka Sorong 0.05mm', 'Kunci Chuck']),
-      materials: JSON.stringify(['Besi As (Mild Steel) Ø 25mm x 100mm']),
+      title: 'Overhaul Pompa Sentrifugal Industri',
+      objective: 'Siswa mampu membongkar, menginspeksi kerusakan, mengganti bearing/seal, dan merakit kembali pompa sentrifugal sesuai SOP.',
+      tools: JSON.stringify(['Kunci Pas & Ring Set', 'Bearing Puller', 'Dial Indicator', 'Vernier Caliper', 'Palu Tembaga']),
+      materials: JSON.stringify(['Gasket Sheet', 'Grease Pelumas', 'Mechanical Seal Pompa', 'Bearing 6204']),
       sop: JSON.stringify([
-        'Siapkan gambar kerja dan pahami ukurannya.',
-        'Cek kondisi mesin bubut dan pastikan aman digunakan.',
-        'Pasang benda kerja pada chuck, pastikan senter.',
-        'Lakukan facing pada salah satu ujung.',
-        'Bubut rata bertingkat sesuai ukuran pada blueprint.'
+        'Siapkan dokumen manual pemeliharaan pompa dan form check sheet.',
+        'Pastikan daya listrik ke motor penggerak pompa sudah di-LOTO (Lockout/Tagout).',
+        'Bongkar casing pompa secara perlahan menggunakan kunci yang sesuai.',
+        'Lepaskan impeller dan shaft bearing menggunakan bearing puller.',
+        'Inspeksi poros dan ganti bearing serta mechanical seal yang aus.',
+        'Rakit kembali seluruh komponen dan uji kelancaran putaran poros.'
       ]),
       safety: JSON.stringify([
-        'Gunakan kacamata pelindung (Safety Goggles).',
-        'Gunakan sepatu safety.',
-        'Jangan memakai pakaian longgar atau perhiasan.'
+        'Terapkan prosedur Lockout/Tagout (LOTO) sebelum memulai pekerjaan.',
+        'Gunakan sarung tangan safety dan kacamata pelindung.',
+        'Gunakan safety shoes untuk menghindari kejatuhan komponen pompa yang berat.'
       ]),
       status: 'Belum Dikerjakan',
       dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days from now
@@ -140,10 +141,10 @@ async function main() {
     update: {},
     create: {
       id: "m1",
-      name: "Mesin Bubut Konvensional #1",
-      type: "Bubut",
+      name: "Sistem Trainer Pneumatik Festo",
+      type: "Trainer Pneumatik",
       status: "Ready",
-      notes: "Kondisi baik, oli baru diganti."
+      notes: "Kondisi baik, selang dan silinder dalam keadaan normal."
     }
   });
 
@@ -152,10 +153,10 @@ async function main() {
     update: {},
     create: {
       id: "m2",
-      name: "Mesin Bubut Konvensional #2",
-      type: "Bubut",
+      name: "Pompa Sentrifugal Ebara & Motor Penggerak",
+      type: "Pompa Industri",
       status: "Maintenance",
-      notes: "Perbaikan spindle, target selesai besok."
+      notes: "Perbaikan poros dan mechanical seal bocor."
     }
   });
 
@@ -164,10 +165,10 @@ async function main() {
     update: {},
     create: {
       id: "m3",
-      name: "Mesin Milling Haas CNC",
-      type: "CNC",
+      name: "Kompresor Udara Screw Atlas Copco",
+      type: "Kompresor",
       status: "Ready",
-      notes: "Kalibrasi sensor sumbu Z selesai."
+      notes: "Ganti filter udara dan oli selesai dilakukan."
     }
   });
 
@@ -178,7 +179,7 @@ async function main() {
     create: {
       id: "a1",
       title: "Jadwal Pelaksanaan Uji Kompetensi Keahlian (UKK) 2026",
-      content: "Pelaksanaan UKK Pemesinan Bubut akan dimulai tanggal 15 Mei 2026. Persiapkan alat pelindung diri (Safety shoes, kacamata pelindung, wearpack).",
+      content: "Pelaksanaan UKK Teknik Mekanik Industri (TMI) akan dimulai tanggal 15 Mei 2026. Persiapkan APD lengkap dan wearpack kerja.",
       category: "Jadwal"
     }
   });
@@ -188,8 +189,8 @@ async function main() {
     update: {},
     create: {
       id: "a2",
-      title: "Wajib Menggunakan Wearpack & Sepatu Safety di Area Bengkel!",
-      content: "Dilarang keras masuk bengkel mesin tanpa menggunakan APD lengkap. Guru berhak mengeluarkan siswa yang melanggar K3.",
+      title: "Wajib Menerapkan LOTO sebelum Perawatan Mesin!",
+      content: "Dilarang keras melakukan servis/perawatan mesin tanpa memasang Lockout/Tagout (LOTO) pada saklar daya utama mesin.",
       category: "K3"
     }
   });
@@ -224,7 +225,7 @@ async function main() {
     update: {},
     create: {
       id: "t3",
-      name: "Kunci Chuck Bubut Konvensional 10 Inch",
+      name: "Pressure Gauge Analog 0-10 Bar",
       quantity: 8,
       available: 8,
       location: "Gantungan Panel Alat #1"
@@ -238,8 +239,8 @@ async function main() {
     create: {
       id: "q1",
       courseId: course1.id,
-      title: "Ujian Harian 1: Pemesinan Bubut Konvensional",
-      description: "Tes pengetahuan dasar pembubutan, kecepatan potong, dan K3.",
+      title: "Ujian Harian 1: Pemeliharaan Mesin & Sistem LOTO",
+      description: "Tes pengetahuan dasar pemeliharaan pompa, kelistrikan mesin, pneumatik, dan K3 LOTO.",
       timeLimit: 15
     }
   });
@@ -250,9 +251,9 @@ async function main() {
     create: {
       id: "que1",
       quizId: quiz.id,
-      text: "Manakah alat keselamatan kerja yang WAJIB digunakan saat mengoperasikan mesin bubut untuk menghindari cipratan geram besi?",
-      options: JSON.stringify(["Kacamata Pelindung (Safety Goggles)", "Sarung Tangan Kulit", "Masker Kain", "Apron Las"]),
-      answer: "Kacamata Pelindung (Safety Goggles)"
+      text: "Apa kepanjangan dari prosedur keselamatan LOTO dalam pemeliharaan mesin industri?",
+      options: JSON.stringify(["Lockout / Tagout", "Lockin / Timeout", "Logoff / Toolout", "Loading / Tagging"]),
+      answer: "Lockout / Tagout"
     }
   });
 
@@ -262,9 +263,9 @@ async function main() {
     create: {
       id: "que2",
       quizId: quiz.id,
-      text: "Jika diameter benda kerja adalah 50mm dan kecepatan potong (Cs) baja lunak adalah 30 m/menit, berapakah kisaran putaran mesin (RPM) yang harus diset?",
-      options: JSON.stringify(["~190 RPM", "~380 RPM", "~570 RPM", "~760 RPM"]),
-      answer: "~190 RPM"
+      text: "Kavitasi pada pompa sentrifugal biasanya disebabkan oleh...",
+      options: JSON.stringify(["Tekanan hisap terlalu rendah dibanding tekanan uap jenuh air", "Putaran poros terlalu lambat", " Mechanical seal terlalu kencang", "Kelebihan grease pada bearing"]),
+      answer: "Tekanan hisap terlalu rendah dibanding tekanan uap jenuh air"
     }
   });
 
@@ -295,8 +296,8 @@ async function main() {
   await prisma.jobVacancy.create({
     data: {
       company: "PT Krakatau Steel (Persero) Tbk",
-      position: "Operator Mesin Bubut & CNC",
-      description: "Dibutuhkan lulusan SMK Teknik Pemesinan untuk posisi Operator Bubut & CNC. Mampu membaca gambar teknik, menggunakan jangka sorong/mikrometer, dan mengoperasikan mesin CNC Siemens/Fanuc.",
+      position: "Teknisi Pemeliharaan Mesin (Maintenance)",
+      description: "Dibutuhkan lulusan SMK Teknik Mekanik Industri untuk posisi Teknisi Maintenance. Mampu melakukan preventif maintenance pompa, gearbox, hidrolik pneumatik, kelistrikan, dan membaca gambar sirkuit industri.",
       location: "Kawasan Industri Krakatau, Cilegon",
       salary: "UJK Cilegon + Lembur",
       contact: "recruitment@krakatausteel.co.id"
@@ -307,7 +308,7 @@ async function main() {
     data: {
       company: "PT Chandra Asri Petrochemical Tbk",
       position: "Mechanical Maintenance Technician (Magang)",
-      description: "Program pemagangan BKK SMK untuk lulusan Teknik Mesin/Pemesinan. Fokus pada pemeliharaan preventif pompa, katup (valves), dan mesin-mesin rotasi industri kimia.",
+      description: "Program pemagangan BKK SMK untuk lulusan Teknik Mekanik Industri / Teknik Mesin. Fokus pada pemeliharaan preventif pompa, katup (valves), dan mesin-mesin rotasi industri kimia.",
       location: "Ciwandan, Cilegon",
       salary: "Uang Saku Magang & BPJS",
       contact: "bkk-ypwks@chandra-asri.com"

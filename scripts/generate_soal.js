@@ -25,13 +25,13 @@ function generateExcel() {
       "Chuck (Ragum bubut/Spindel)"
     ],
     [
-      "Rumus yang digunakan untuk mencari kecepatan putaran mesin bubut (n) dalam Rpm adalah...",
-      "n = (Cs x d) / 1000",
-      "n = (1000 x Cs) / (pi x d)",
-      "n = (pi x d x Cs) / 1000",
-      "n = (1000 x pi) / (Cs x d)",
-      "n = Cs x pi x d",
-      "n = (1000 x Cs) / (pi x d)"
+      "Prosedur keselamatan kerja untuk mengunci sumber energi mesin agar tidak dinyalakan saat pemeliharaan disebut...",
+      "Lockout / Tagout (LOTO)",
+      "Permit to Work (PTW)",
+      "Job Safety Analysis (JSA)",
+      "Hazard Identification",
+      "Standard Operating Procedure (SOP)",
+      "Lockout / Tagout (LOTO)"
     ],
     [
       "Pada pembubutan ulir metris M12 x 1.75, angka 1.75 menunjukkan...",
@@ -242,7 +242,7 @@ function generateExcel() {
     fs.mkdirSync(destDir, { recursive: true });
   }
 
-  const destFile = path.join(destDir, "soal_teknik_mesin_25.xlsx");
+  const destFile = path.join(destDir, "soal_teknik_mekanik_industri_25.xlsx");
   XLSX.writeFile(wb, destFile);
   console.log(`Sukses membuat file Excel soal di: ${destFile}`);
 }
