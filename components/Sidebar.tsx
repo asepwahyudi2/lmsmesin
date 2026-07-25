@@ -5,7 +5,7 @@ import {
   LayoutDashboard, BookOpen, FileText, Users, CalendarCheck,
   BarChart, LogOut, FolderOpen, Wrench, GraduationCap, Settings,
   Briefcase, Database, Calendar, Megaphone, AlertTriangle, FileSpreadsheet,
-  CreditCard, ClipboardList, Trophy, ShieldCheck, Bell, X
+  CreditCard, ClipboardList, Trophy, ShieldCheck, Bell, X, Cpu
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -45,6 +45,7 @@ export function Sidebar({ isOpen, onClose }: { isOpen?: boolean, onClose?: () =>
             items: [
               { name: "Mata Pelajaran", href: "/courses", icon: BookOpen },
               { name: "Perangkat Pembelajaran", href: "/lesson-plans", icon: FolderOpen },
+              { name: "Skema & Diagram", href: "/diagrams", icon: Cpu },
               { name: "Pelanggaran Siswa", href: "/violations", icon: AlertTriangle },
               { name: "E-Rapor", href: "/rapor", icon: FileSpreadsheet },
               { name: "Kartu Ujian", href: "/kartu-ujian", icon: CreditCard },
@@ -82,6 +83,7 @@ export function Sidebar({ isOpen, onClose }: { isOpen?: boolean, onClose?: () =>
             items: [
               { name: "Mata Pelajaran", href: "/courses", icon: BookOpen },
               { name: "Perangkat Mengajar", href: "/lesson-plans", icon: FolderOpen },
+              { name: "Skema & Diagram", href: "/diagrams", icon: Cpu },
               { name: "Pojok Job Sheet", href: "/jobsheets", icon: FileText },
               { name: "Ujian Teori (Kuis)", href: "/quizzes", icon: GraduationCap },
               { name: "Jurnal Mengajar", href: "/jurnal-mengajar", icon: ClipboardList },
@@ -113,6 +115,7 @@ export function Sidebar({ isOpen, onClose }: { isOpen?: boolean, onClose?: () =>
               { name: "Dashboard", href: "/", icon: LayoutDashboard },
               { name: "Mata Pelajaran", href: "/courses", icon: BookOpen },
               { name: "Bahan Ajar / Materi", href: "/lesson-plans", icon: FolderOpen },
+              { name: "Skema & Diagram", href: "/diagrams", icon: Cpu },
               { name: "Pojok Job Sheet", href: "/jobsheets", icon: FileText },
               { name: "Tugas & Laporan", href: "/assignments", icon: FolderOpen },
               { name: "Ujian Teori (Kuis)", href: "/quizzes", icon: GraduationCap },
@@ -154,6 +157,7 @@ export function Sidebar({ isOpen, onClose }: { isOpen?: boolean, onClose?: () =>
             items: [
               { name: "Mata Pelajaran", href: "/courses", icon: BookOpen },
               { name: "Perangkat Ajar Guru", href: "/lesson-plans", icon: FolderOpen },
+              { name: "Skema & Diagram Guru", href: "/diagrams", icon: Cpu },
               { name: "Absensi", href: "/attendance", icon: CalendarCheck },
               { name: "Rekapan Nilai", href: "/grades", icon: Trophy },
             ]
