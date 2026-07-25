@@ -10,6 +10,7 @@ export default function RegisterPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [role, setRole] = useState("Murid");
+  const [studentClass, setStudentClass] = useState("XII TM A");
   const [verificationCode, setVerificationCode] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -42,6 +43,7 @@ export default function RegisterPage() {
         email,
         role,
         passwordRaw: password,
+        class: role === "Murid" ? studentClass : undefined,
         verificationCode: role === "Guru" ? verificationCode : undefined,
       });
 
@@ -53,7 +55,7 @@ export default function RegisterPage() {
           router.push("/login");
         }, 2000);
       }
-    } catch (err) {
+    } catch {
       setError("Terjadi kesalahan sistem.");
     } finally {
       setLoading(false);
@@ -148,7 +150,39 @@ export default function RegisterPage() {
                 </button>
               </div>
             </div>
-
+ 
+            {role === "Murid" && (
+              <div className="animate-in slide-in-from-top-2 duration-200">
+                <label htmlFor="studentClass" className="text-xs font-medium text-slate-300 ml-1 mb-1 block">Kelas</label>
+                <select
+                  id="studentClass"
+                  required
+                  value={studentClass}
+                  onChange={(e) => setStudentClass(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-xl px-4 py-2.5 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-all text-sm"
+                >
+                  <optgroup label="Kelas X">
+                    <option value="X TM A">X TM A</option>
+                    <option value="X TM B">X TM B</option>
+                    <option value="X TM C">X TM C</option>
+                    <option value="X TM D">X TM D</option>
+                  </optgroup>
+                  <optgroup label="Kelas XI">
+                    <option value="XI TM A">XI TM A</option>
+                    <option value="XI TM B">XI TM B</option>
+                    <option value="XI TM C">XI TM C</option>
+                    <option value="XI TM D">XI TM D</option>
+                  </optgroup>
+                  <optgroup label="Kelas XII">
+                    <option value="XII TM A">XII TM A</option>
+                    <option value="XII TM B">XII TM B</option>
+                    <option value="XII TM C">XII TM C</option>
+                    <option value="XII TM D">XII TM D</option>
+                  </optgroup>
+                </select>
+              </div>
+            )}
+ 
             {role === "Guru" && (
               <div className="animate-in slide-in-from-top-2 duration-200">
                 <label htmlFor="verif" className="text-xs font-medium text-slate-300 ml-1 mb-1 block">Kode Verifikasi Guru</label>

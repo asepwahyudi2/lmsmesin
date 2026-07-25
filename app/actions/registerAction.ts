@@ -8,6 +8,7 @@ export async function registerUser(data: {
   email: string;
   role: string;
   passwordRaw: string;
+  class?: string;
   verificationCode?: string;
 }) {
   try {
@@ -50,9 +51,27 @@ export async function registerUser(data: {
         name,
         email,
         role,
+        class: role === "Murid" ? data.class : null,
         password_hash: passwordHash,
       }
     });
+
+    // Auto-enrollment ke Course yang sesuai dengan kelas siswa
+    if (role === "Murid" && data.class) {
+      const matchingCourses = await prisma.course.findMany({
+        where: { class: data.class }
+      });
+
+      if (matchingCourses.length > 0) {
+        await prisma.enrollment.createMany({
+          data: matchingCourses.map(course => ({
+            studentId: user.id,
+            courseId: course.id
+          })),
+          skipDuplicates: true
+        });
+      }
+    }
 
     return { success: true, user: { id: user.id, email: user.email, name: user.name } };
   } catch (error: any) {

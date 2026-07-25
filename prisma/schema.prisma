@@ -14,6 +14,7 @@ model User {
   email         String    @unique
   password_hash String
   role          String    // "Admin", "Guru", "Murid"
+  class         String?   // Tambahan kolom kelas (khusus Murid)
   createdAt     DateTime  @default(now())
   
   // 2FA Fields
