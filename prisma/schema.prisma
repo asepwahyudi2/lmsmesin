@@ -40,6 +40,7 @@ model User {
   activityLogs       ActivityLog[]
   userSessions       UserSession[]
   reservations       MachineReservation[]
+  lessonPlans        LessonPlan[]
 }
 
 model Course {
@@ -60,6 +61,7 @@ model Course {
   forumPosts  ForumPost[]
   attitudeGrades AttitudeGrade[]
   teacherJournals TeacherJournal[]
+  lessonPlans     LessonPlan[]
 
   @@index([teacherId])
 }
@@ -459,4 +461,21 @@ model MachineReservation {
 
   @@index([machineId])
   @@index([studentId])
+}
+
+model LessonPlan {
+  id          String   @id @default(cuid())
+  title       String   // Contoh: RPP Modul Ajar Pneumatik
+  type        String   // RPP/Modul Ajar, Silabus/ATP, KKTP, Bahan Ajar, Lainnya
+  fileUrl     String   @db.LongText // Tautan file PDF/DOCX/Spreadsheet
+  fileName    String?  // Nama asli file
+  courseId    String?
+  course      Course?  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  teacherId   String
+  teacher     User     @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([courseId])
+  @@index([teacherId])
 }

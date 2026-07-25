@@ -44,6 +44,7 @@ export function Sidebar({ isOpen, onClose }: { isOpen?: boolean, onClose?: () =>
             section: "Akademik",
             items: [
               { name: "Mata Pelajaran", href: "/courses", icon: BookOpen },
+              { name: "Perangkat Pembelajaran", href: "/lesson-plans", icon: FolderOpen },
               { name: "Pelanggaran Siswa", href: "/violations", icon: AlertTriangle },
               { name: "E-Rapor", href: "/rapor", icon: FileSpreadsheet },
               { name: "Kartu Ujian", href: "/kartu-ujian", icon: CreditCard },
@@ -80,6 +81,7 @@ export function Sidebar({ isOpen, onClose }: { isOpen?: boolean, onClose?: () =>
             section: "Mengajar",
             items: [
               { name: "Mata Pelajaran", href: "/courses", icon: BookOpen },
+              { name: "Perangkat Mengajar", href: "/lesson-plans", icon: FolderOpen },
               { name: "Pojok Job Sheet", href: "/jobsheets", icon: FileText },
               { name: "Ujian Teori (Kuis)", href: "/quizzes", icon: GraduationCap },
               { name: "Jurnal Mengajar", href: "/jurnal-mengajar", icon: ClipboardList },
@@ -110,6 +112,7 @@ export function Sidebar({ isOpen, onClose }: { isOpen?: boolean, onClose?: () =>
             items: [
               { name: "Dashboard", href: "/", icon: LayoutDashboard },
               { name: "Mata Pelajaran", href: "/courses", icon: BookOpen },
+              { name: "Bahan Ajar / Materi", href: "/lesson-plans", icon: FolderOpen },
               { name: "Pojok Job Sheet", href: "/jobsheets", icon: FileText },
               { name: "Tugas & Laporan", href: "/assignments", icon: FolderOpen },
               { name: "Ujian Teori (Kuis)", href: "/quizzes", icon: GraduationCap },
@@ -150,6 +153,7 @@ export function Sidebar({ isOpen, onClose }: { isOpen?: boolean, onClose?: () =>
             section: "Pantau Akademik",
             items: [
               { name: "Mata Pelajaran", href: "/courses", icon: BookOpen },
+              { name: "Perangkat Ajar Guru", href: "/lesson-plans", icon: FolderOpen },
               { name: "Absensi", href: "/attendance", icon: CalendarCheck },
               { name: "Rekapan Nilai", href: "/grades", icon: Trophy },
             ]

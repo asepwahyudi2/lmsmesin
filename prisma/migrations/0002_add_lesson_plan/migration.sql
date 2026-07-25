@@ -1,0 +1,17 @@
+CREATE TABLE `LessonPlan` (
+    `id` VARCHAR(191) NOT NULL,
+    `title` VARCHAR(191) NOT NULL,
+    `type` VARCHAR(191) NOT NULL,
+    `fileUrl` LONGTEXT NOT NULL,
+    `fileName` VARCHAR(191) NULL,
+    `courseId` VARCHAR(191) NULL,
+    `teacherId` VARCHAR(191) NOT NULL,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `updatedAt` DATETIME(3) NOT NULL,
+
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+ALTER TABLE `LessonPlan` ADD CONSTRAINT `LessonPlan_courseId_fkey` FOREIGN KEY (`courseId`) REFERENCES `Course`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+ALTER TABLE `LessonPlan` ADD CONSTRAINT `LessonPlan_teacherId_fkey` FOREIGN KEY (`teacherId`) REFERENCES `User`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
