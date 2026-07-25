@@ -1,12 +1,20 @@
 "use client";
 
 import React, { useState } from "react";
+import dynamic from "next/dynamic";
 import { FileText, Wrench, ShieldAlert, ListChecks, Download, Eye, Upload, X, Box } from "lucide-react";
 import { Course } from "@prisma/client";
 import Link from "next/link";
 import { submitAssignment } from "./actions/submitAssignment";
 import { getSubmissionsForJobSheet, submitGrade } from "./actions/gradeAssignment";
-import CadViewer from "@/components/CadViewer";
+const CadViewer = dynamic(() => import("@/components/CadViewer"), {
+  ssr: false,
+  loading: () => (
+    <div className="bg-slate-900/50 border border-slate-700/50 rounded-xl h-[400px] flex items-center justify-center text-slate-400">
+      Loading 3D Engine...
+    </div>
+  )
+});
 import { CountdownTimer } from "@/components/CountdownTimer";
 import imageCompression from "browser-image-compression";
 import { DragDropZone } from "@/components/DragDropZone";
