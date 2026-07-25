@@ -78,7 +78,7 @@ export async function startMachineLogbook(machineId: string, activity: string) {
   }
 }
 
-export async function finishMachineLogbook(machineId: string, notes?: string) {
+export async function finishMachineLogbook(machineId: string, notes?: string, imageUrl?: string) {
   try {
     const user = await requireRole("Murid");
     if (!machineId) throw new Error("Mesin wajib dipilih.");
@@ -102,6 +102,7 @@ export async function finishMachineLogbook(machineId: string, notes?: string) {
         endTime: now,
         duration,
         notes,
+        imageUrl: imageUrl || null,
         status: "Completed"
       },
       include: { machine: { select: { name: true } } }

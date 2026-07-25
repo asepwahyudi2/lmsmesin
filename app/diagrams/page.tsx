@@ -3,12 +3,9 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "../api/auth/[...nextauth]/options";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
-import ClientRaporPage from "./ClientRaporPage";
+import ClientDiagramsPage from "./ClientDiagramsPage";
 
-
-
-
-export default async function RaporPage() {
+export default async function DiagramsPage() {
   const session = await getServerSession(authOptions);
 
   if (!session?.user) {
@@ -17,7 +14,8 @@ export default async function RaporPage() {
 
   const currentUser = session.user;
 
-  let courses: any[] = [];
+  // Fetch all courses for mapping
+  let courses = [];
   if (currentUser.role === "Admin" || currentUser.role === "Kepsek") {
     courses = await prisma.course.findMany({ orderBy: { name: "asc" } });
   } else if (currentUser.role === "Guru") {
@@ -26,33 +24,33 @@ export default async function RaporPage() {
       orderBy: { name: "asc" },
     });
   } else if (currentUser.role === "Murid") {
-    // Murid can view their own courses
+    // Fetch courses the student is enrolled in
     const enrollments = await prisma.enrollment.findMany({
       where: { studentId: currentUser.id },
-      select: { courseId: true }
+      select: { courseId: true },
     });
-    const courseIds = enrollments.map(e => e.courseId);
+    const courseIds = enrollments.map((e) => e.courseId);
     courses = await prisma.course.findMany({
       where: { id: { in: courseIds } },
-      orderBy: { name: "asc" }
+      orderBy: { name: "asc" },
     });
   }
 
-  // Fetch Students list for dropdown selection (for Guru/Admin/Kepsek assessment/view)
-  let students: any[] = [];
-  if (currentUser.role !== "Murid") {
-    students = await prisma.user.findMany({
-      where: { role: "Murid" },
-      select: { id: true, name: true, class: true },
-      orderBy: { name: "asc" }
-    });
-  }
+  // Fetch all technical diagrams
+  const courseIds = courses.map((c) => c.id);
+  const diagrams = await prisma.technicalDiagram.findMany({
+    where: currentUser.role === "Admin" ? {} : { courseId: { in: courseIds } },
+    include: {
+      course: { select: { name: true, class: true } },
+    },
+    orderBy: { createdAt: "desc" },
+  });
 
   return (
-    <ClientRaporPage 
-      courses={courses} 
-      currentUser={currentUser} 
-      initialStudents={students}
+    <ClientDiagramsPage
+      currentUser={currentUser}
+      diagrams={diagrams}
+      courses={courses}
     />
   );
 }

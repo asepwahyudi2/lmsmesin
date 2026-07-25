@@ -34,6 +34,7 @@ export default function ClientToolsPage({ currentUser, tools, loans }: Props) {
 
   // Notes state for Return/Reject (Guru/Admin)
   const [notes, setNotes] = useState("");
+  const [returnCondition, setReturnCondition] = useState<"Baik" | "Rusak" | "Hilang">("Baik");
 
   const isAdmin = currentUser.role === "Admin";
   const isGuru = currentUser.role === "Guru";
@@ -76,16 +77,20 @@ export default function ClientToolsPage({ currentUser, tools, loans }: Props) {
     }
   };
 
-  const handleUpdateStatus = async (loanId: string, status: "Borrowed" | "Rejected" | "Returned") => {
+  const handleUpdateStatus = async (
+    loanId: string, 
+    status: "Borrowed" | "Rejected" | "Returned",
+    cond?: "Baik" | "Rusak" | "Hilang"
+  ) => {
     const actionText = 
       status === "Borrowed" ? "menyetujui peminjaman" : 
       status === "Rejected" ? "menolak peminjaman" : 
-      "mencatat pengembalian alat";
+      `mencatat pengembalian alat (${cond || 'Baik'})`;
 
     if (!confirm(`Apakah Anda yakin ingin ${actionText}?`)) return;
 
     setIsSubmitting(true);
-    const result = await updateLoanStatus(loanId, status, notes || undefined);
+    const result = await updateLoanStatus(loanId, status, notes || undefined, cond);
     setIsSubmitting(false);
 
     if (result.success) {
@@ -357,7 +362,16 @@ export default function ClientToolsPage({ currentUser, tools, loans }: Props) {
                   </div>
                   
                   <div id={`return-form-${loan.id}`} className="hidden p-4 bg-slate-800 border-b border-slate-700">
-                    <div className="flex items-center gap-3">
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                      <select
+                        value={returnCondition}
+                        onChange={(e) => setReturnCondition(e.target.value as any)}
+                        className="bg-slate-900 border border-blue-500/50 text-slate-200 rounded px-3 py-1.5 text-xs focus:outline-none"
+                      >
+                        <option value="Baik">Kondisi Baik</option>
+                        <option value="Rusak">Kondisi Rusak (+10 Poin Pelanggaran)</option>
+                        <option value="Hilang">Kondisi Hilang (+25 Poin Pelanggaran)</option>
+                      </select>
                       <input 
                         type="text" 
                         placeholder="Catatan pengembalian (misal: Kondisi OK / Ada lecet)..." 
@@ -365,16 +379,17 @@ export default function ClientToolsPage({ currentUser, tools, loans }: Props) {
                         className="flex-1 bg-slate-900 border border-blue-500/50 text-slate-200 rounded px-3 py-1.5 text-xs focus:outline-none"
                       />
                       <button 
-                        onClick={() => handleUpdateStatus(loan.id, "Returned")}
-                        className="px-3 py-1.5 bg-blue-600 text-white text-xs font-bold rounded"
+                        onClick={() => handleUpdateStatus(loan.id, "Returned", returnCondition)}
+                        className="px-3 py-1.5 bg-blue-600 text-white text-xs font-bold rounded shrink-0"
                       >Konfirmasi Pengembalian</button>
                       <button 
                         onClick={() => {
                           document.getElementById(`return-form-${loan.id}`)?.classList.add('hidden');
                           document.getElementById(`loan-row-${loan.id}`)?.classList.remove('bg-slate-800/80');
                           setNotes("");
+                          setReturnCondition("Baik");
                         }}
-                        className="px-3 py-1.5 bg-slate-700 text-slate-300 text-xs font-bold rounded"
+                        className="px-3 py-1.5 bg-slate-700 text-slate-300 text-xs font-bold rounded shrink-0"
                       >Batal</button>
                     </div>
                   </div>

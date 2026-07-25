@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { requireRole, requireSession } from "@/lib/authz";
+import { sendWhatsAppMessage } from "@/lib/whatsapp";
 
 export async function getTools() {
   try {
@@ -41,12 +42,17 @@ export async function requestToolLoan(studentId: string, toolId: string, qty: nu
   }
 }
 
-export async function updateLoanStatus(loanId: string, status: "Borrowed" | "Rejected" | "Returned", notes?: string) {
+export async function updateLoanStatus(
+  loanId: string, 
+  status: "Borrowed" | "Rejected" | "Returned", 
+  notes?: string,
+  returnCondition?: "Baik" | "Rusak" | "Hilang"
+) {
   try {
-    await requireRole("Admin", "Guru");
+    const userSession = await requireRole("Admin", "Guru");
     const loan = await prisma.toolLoan.findUnique({
       where: { id: loanId },
-      include: { tool: true }
+      include: { tool: true, student: true }
     });
     if (!loan) throw new Error("Transaksi peminjaman tidak ditemukan");
     if (status === "Borrowed" && loan.status !== "Pending") throw new Error("Peminjaman ini tidak dapat disetujui.");
@@ -79,6 +85,29 @@ export async function updateLoanStatus(loanId: string, status: "Borrowed" | "Rej
         SET available = LEAST(available, quantity) 
         WHERE id = ${loan.toolId}
       `;
+
+      // Logika Pelanggaran Otomatis untuk Rusak/Hilang
+      if (returnCondition === "Rusak" || returnCondition === "Hilang") {
+        const points = returnCondition === "Rusak" ? 10 : 25;
+        const category = returnCondition === "Rusak" ? "Sedang" : "Berat";
+        const description = `Mengembalikan alat "${loan.tool.name}" dalam kondisi ${returnCondition}. Catatan: ${notes || '-'}`;
+
+        await prisma.violation.create({
+          data: {
+            studentId: loan.studentId,
+            reportedBy: userSession.id,
+            category,
+            description,
+            points
+          }
+        });
+
+        // Kirim WhatsApp Notification
+        if (loan.student.phone) {
+          const waMessage = `Halo ${loan.student.name}, Anda tercatat melakukan pelanggaran K3/Kelalaian: ${description}. Anda dikenakan tambahan ${points} poin pelanggaran.`;
+          await sendWhatsAppMessage(waMessage, loan.student.phone);
+        }
+      }
     }
 
     await prisma.toolLoan.update({
@@ -86,6 +115,7 @@ export async function updateLoanStatus(loanId: string, status: "Borrowed" | "Rej
       data: { 
         status, 
         notes,
+        returnCondition: status === "Returned" ? (returnCondition || "Baik") : null,
         returnDate: status === "Returned" ? new Date() : null
       }
     });

@@ -15,6 +15,7 @@ model User {
   password_hash String
   role          String    // "Admin", "Guru", "Murid"
   class         String?   // Tambahan kolom kelas (khusus Murid)
+  phone         String?   // Tambahan nomor WhatsApp untuk notifikasi
   createdAt     DateTime  @default(now())
   
   // 2FA Fields
@@ -42,6 +43,7 @@ model User {
   userSessions       UserSession[]
   reservations       MachineReservation[]
   lessonPlans        LessonPlan[]
+  lspStatuses        StudentLspStatus[]
 }
 
 model Course {
@@ -63,6 +65,9 @@ model Course {
   attitudeGrades AttitudeGrade[]
   teacherJournals TeacherJournal[]
   lessonPlans     LessonPlan[]
+  diagrams        TechnicalDiagram[]
+  lspUnits        LspUnit[]
+  lspStatuses     StudentLspStatus[]
 
   @@index([teacherId])
 }
@@ -213,6 +218,7 @@ model Logbook {
   startTime   DateTime?
   endTime     DateTime?
   status      String   @default("Completed") // InProgress, Completed
+  imageUrl    String?  @db.LongText // Tautan foto bukti fisik hasil praktik
 
   @@index([studentId])
   @@index([machineId])
@@ -251,6 +257,7 @@ model ToolLoan {
   loanDate    DateTime @default(now())
   returnDate  DateTime?
   notes       String?  // Contoh: 'Kembali dengan jangka sorong tergores'
+  returnCondition String? // Baik, Rusak, Hilang
 
   @@index([studentId])
   @@index([toolId])
@@ -479,4 +486,49 @@ model LessonPlan {
 
   @@index([courseId])
   @@index([teacherId])
+}
+
+model TechnicalDiagram {
+  id          String   @id @default(cuid())
+  title       String   // Contoh: Sirkuit Hidrolik Pemotong Pelat
+  type        String   // PLC / Kelistrikan / Pneumatik / Hidrolik / Lainnya
+  fileUrl     String   @db.LongText // Tautan gambar/SVG/PDF skema
+  fileName    String?
+  courseId    String?
+  course      Course?  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([courseId])
+}
+
+model LspUnit {
+  id          String   @id @default(cuid())
+  code        String   @unique // Contoh: LOG.OO02.001.01
+  name        String   // Contoh: Memelihara Sistem Hidrolik
+  courseId    String?
+  course      Course?  @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  statuses    StudentLspStatus[]
+  createdAt   DateTime @default(now())
+
+  @@index([courseId])
+}
+
+model StudentLspStatus {
+  id          String   @id @default(cuid())
+  studentId   String
+  student     User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  unitId      String
+  unit        LspUnit  @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  courseId    String?
+  course      Course?  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  status      String   // K (Kompeten) / BK (Belum Kompeten) / Pending
+  notes       String?  // Catatan penilaian dari guru
+  assessedBy  String?  // Nama guru yang menilai
+  updatedAt   DateTime @updatedAt
+
+  @@unique([studentId, unitId])
+  @@index([studentId])
+  @@index([unitId])
+  @@index([courseId])
 }

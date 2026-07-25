@@ -5,6 +5,7 @@ import { BookOpen, Calendar, Image as ImageIcon, Plus, Save, Scan, User, X } fro
 import { createLogbook, finishMachineLogbook, startMachineLogbook } from "../actions/logbookActions";
 import { useToast } from "@/lib/toast";
 import QrScanner from "@/components/QrScanner";
+import { DragDropZone } from "@/components/DragDropZone";
 
 interface Props {
   currentUser: any;
@@ -19,8 +20,12 @@ export default function ClientAssignmentsPage({ currentUser, machines, logbooks,
   const [showAddLogModal, setShowAddLogModal] = useState(false);
   const [showQrScanner, setShowQrScanner] = useState(false);
   const [showStartModal, setShowStartModal] = useState(false);
+  const [showFinishModal, setShowFinishModal] = useState(false);
   const [scannedMachine, setScannedMachine] = useState<any | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [uploadedPhotoUrl, setUploadedPhotoUrl] = useState("");
+  const [uploadedPhotoName, setUploadedPhotoName] = useState("");
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   // Form states
   const [machineId, setMachineId] = useState("");
@@ -49,16 +54,10 @@ export default function ClientAssignmentsPage({ currentUser, machines, logbooks,
     setScannedMachine(machine);
 
     if (activeLogbook?.machineId === scannedMachineId) {
-      setIsSubmitting(true);
-      const result = await finishMachineLogbook(scannedMachineId, notes || undefined);
-      setIsSubmitting(false);
-      if (result.success) {
-        success(`Praktik di ${machine.name} selesai. Durasi tercatat otomatis.`);
-        setNotes("");
-        window.location.reload();
-      } else {
-        toastError("Gagal menyelesaikan praktik: " + result.error);
-      }
+      setNotes("");
+      setUploadedPhotoUrl("");
+      setUploadedPhotoName("");
+      setShowFinishModal(true);
       return;
     }
 
@@ -70,6 +69,57 @@ export default function ClientAssignmentsPage({ currentUser, machines, logbooks,
     setMachineId(scannedMachineId);
     setActivity("");
     setShowStartModal(true);
+  };
+
+  const handlePhotoUpload = async (file: File) => {
+    setUploadingPhoto(true);
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        setUploadedPhotoUrl(data.url);
+        setUploadedPhotoName(data.fileName || file.name);
+        success("Foto bukti praktik berhasil diunggah!");
+      } else {
+        toastError("Gagal mengunggah foto: " + data.error);
+      }
+    } catch {
+      toastError("Terjadi kesalahan saat mengunggah foto.");
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
+  const handleFinishMachineLogbook = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!activeLogbook || !scannedMachine) return;
+    if (!uploadedPhotoUrl) {
+      toastError("Anda wajib mengunggah foto bukti fisik hasil praktik.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    const result = await finishMachineLogbook(scannedMachine.id, notes || undefined, uploadedPhotoUrl);
+    setIsSubmitting(false);
+
+    if (result.success) {
+      success(`Praktik di ${scannedMachine.name} selesai. Durasi tercatat otomatis.`);
+      setShowFinishModal(false);
+      setScannedMachine(null);
+      setNotes("");
+      setUploadedPhotoUrl("");
+      setUploadedPhotoName("");
+      window.location.reload();
+    } else {
+      toastError("Gagal menyelesaikan praktik: " + result.error);
+    }
   };
 
   const handleStartMachineLogbook = async (e: React.FormEvent) => {
@@ -200,13 +250,14 @@ export default function ClientAssignmentsPage({ currentUser, machines, logbooks,
                     <th className="p-4 font-semibold border-b border-slate-700 text-center">Status</th>
                     <th className="p-4 font-semibold border-b border-slate-700 text-center">Mulai / Selesai</th>
                     <th className="p-4 font-semibold border-b border-slate-700 text-center">Durasi</th>
+                    <th className="p-4 font-semibold border-b border-slate-700">Foto Bukti</th>
                     <th className="p-4 font-semibold border-b border-slate-700">Keterangan / Kondisi Mesin</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-700 text-sm">
                   {logbooks.length === 0 ? (
                     <tr>
-                      <td colSpan={isMurid ? 7 : 8} className="p-8 text-center text-slate-500">
+                      <td colSpan={isMurid ? 8 : 9} className="p-8 text-center text-slate-500">
                         Belum ada catatan logbook.
                       </td>
                     </tr>
@@ -237,6 +288,13 @@ export default function ClientAssignmentsPage({ currentUser, machines, logbooks,
                           <span className="block">{log.endTime ? new Date(log.endTime).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }) : "-"}</span>
                         </td>
                         <td className="p-4 text-center text-amber-500 font-bold">{log.status === "InProgress" ? "-" : `${log.duration} Jam`}</td>
+                        <td className="p-4">
+                          {log.imageUrl ? (
+                            <a href={log.imageUrl} target="_blank" rel="noopener noreferrer" className="text-amber-500 hover:underline flex items-center gap-1 text-xs">
+                              <ImageIcon size={14} /> Lihat Foto
+                            </a>
+                          ) : "-"}
+                        </td>
                         <td className="p-4 text-slate-400 text-xs italic">{log.notes || "-"}</td>
                       </tr>
                     ))
@@ -329,6 +387,86 @@ export default function ClientAssignmentsPage({ currentUser, machines, logbooks,
                 </button>
                 <button type="submit" disabled={isSubmitting} className="px-4 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-slate-950 font-bold transition-colors flex items-center gap-2 text-sm">
                   <Scan size={16} /> {isSubmitting ? "Memulai..." : "Mulai Praktik"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {showFinishModal && scannedMachine && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-slate-800 border border-slate-700 rounded-xl w-full max-w-md shadow-2xl overflow-hidden">
+            <div className="p-4 border-b border-slate-700 flex justify-between items-center bg-slate-900/50">
+              <h3 className="font-bold text-slate-100">Selesaikan Praktik Mesin</h3>
+              <button 
+                onClick={() => {
+                  setShowFinishModal(false);
+                  setUploadedPhotoUrl("");
+                  setUploadedPhotoName("");
+                  setNotes("");
+                }} 
+                className="text-slate-400 hover:text-white transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <form onSubmit={handleFinishMachineLogbook} className="p-6 space-y-4">
+              <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 text-sm text-amber-200">
+                Mesin: <strong>{scannedMachine.name}</strong>
+              </div>
+              
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 mb-1 uppercase">Catatan Praktik / Kondisi Mesin</label>
+                <textarea 
+                  rows={3}
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="Contoh: Praktik berjalan lancar, kondisi mesin baik setelah digunakan..."
+                  className="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-amber-500 resize-none text-xs"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase">Unggah Bukti Hasil Kerja (Foto/Gambar. Maks 10MB)</label>
+                <DragDropZone
+                  accept=".jpg,.jpeg,.png,.webp"
+                  maxSizeMB={10}
+                  onFileSelect={handlePhotoUpload}
+                />
+                {uploadingPhoto && (
+                  <p className="text-xs text-amber-500 animate-pulse mt-2">Mengunggah bukti foto...</p>
+                )}
+                {!uploadingPhoto && uploadedPhotoName && (
+                  <div className="mt-2 p-2 bg-emerald-500/10 border border-emerald-500/20 rounded text-emerald-400 text-xs truncate">
+                    Foto berhasil diunggah: <strong>{uploadedPhotoName}</strong>
+                  </div>
+                )}
+              </div>
+
+              <div className="pt-4 flex gap-3 justify-end border-t border-slate-700">
+                <button 
+                  type="button" 
+                  onClick={() => {
+                    setShowFinishModal(false);
+                    setUploadedPhotoUrl("");
+                    setUploadedPhotoName("");
+                    setNotes("");
+                  }} 
+                  className="px-4 py-2 rounded-lg text-slate-300 hover:bg-slate-700 transition-colors text-sm font-medium"
+                >
+                  Batal
+                </button>
+                <button 
+                  type="submit" 
+                  disabled={isSubmitting || uploadingPhoto || !uploadedPhotoUrl}
+                  className="px-4 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-slate-950 font-bold transition-colors flex items-center gap-2 text-sm"
+                >
+                  {isSubmitting ? "Menyimpan..." : (
+                    <>
+                      <Save size={16} /> Selesai Praktik
+                    </>
+                  )}
                 </button>
               </div>
             </form>
