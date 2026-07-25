@@ -17,7 +17,11 @@ export function LayoutShell({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const normalizedPath = pathname ? pathname.replace(/\/$/, "") : "";
-  const isAuthPage = normalizedPath.endsWith("/login") || normalizedPath.endsWith("/forgot-password") || normalizedPath.endsWith("/reset-password");
+  const isAuthPage = 
+    normalizedPath.endsWith("/login") || 
+    normalizedPath.endsWith("/register") || 
+    normalizedPath.endsWith("/forgot-password") || 
+    normalizedPath.endsWith("/reset-password");
 
   React.useEffect(() => {
     if (status === "unauthenticated" && !isAuthPage) {
