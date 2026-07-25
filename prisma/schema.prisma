@@ -207,9 +207,13 @@ model Logbook {
   duration    Int      // Jam (misal: 3 jam)
   date        DateTime @default(now())
   notes       String?  // Catatan kendala mesin/material
+  startTime   DateTime?
+  endTime     DateTime?
+  status      String   @default("Completed") // InProgress, Completed
 
   @@index([studentId])
   @@index([machineId])
+  @@index([studentId, status])
 }
 
 model Portfolio {

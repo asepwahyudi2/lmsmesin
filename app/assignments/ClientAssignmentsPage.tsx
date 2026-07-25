@@ -1,9 +1,10 @@
 "use client";
 
 import React, { useState } from "react";
-import { BookOpen, Calendar, Clock, Cpu, FileText, Image as ImageIcon, Plus, Save, User, X } from "lucide-react";
-import { createLogbook } from "../actions/logbookActions";
+import { BookOpen, Calendar, Image as ImageIcon, Plus, Save, Scan, User, X } from "lucide-react";
+import { createLogbook, finishMachineLogbook, startMachineLogbook } from "../actions/logbookActions";
 import { useToast } from "@/lib/toast";
+import QrScanner from "@/components/QrScanner";
 
 interface Props {
   currentUser: any;
@@ -16,6 +17,9 @@ export default function ClientAssignmentsPage({ currentUser, machines, logbooks,
   const { success, error: toastError } = useToast();
   const [activeTab, setActiveTab] = useState<"logbook" | "portfolio">("logbook");
   const [showAddLogModal, setShowAddLogModal] = useState(false);
+  const [showQrScanner, setShowQrScanner] = useState(false);
+  const [showStartModal, setShowStartModal] = useState(false);
+  const [scannedMachine, setScannedMachine] = useState<any | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Form states
@@ -25,6 +29,67 @@ export default function ClientAssignmentsPage({ currentUser, machines, logbooks,
   const [notes, setNotes] = useState("");
 
   const isMurid = currentUser.role === "Murid";
+  const activeLogbook = logbooks.find((log) => log.status === "InProgress");
+
+  const handleQrScan = async (qrData: string) => {
+    const machineQrPrefix = "lms-mesin://machine/";
+    if (!qrData.startsWith(machineQrPrefix)) {
+      toastError(`QR Code tidak dikenal: ${qrData}`);
+      return;
+    }
+
+    const scannedMachineId = qrData.replace(machineQrPrefix, "");
+    const machine = machines.find((m) => m.id === scannedMachineId);
+    if (!machine) {
+      toastError("Mesin dari QR tidak ditemukan di database.");
+      return;
+    }
+
+    setShowQrScanner(false);
+    setScannedMachine(machine);
+
+    if (activeLogbook?.machineId === scannedMachineId) {
+      setIsSubmitting(true);
+      const result = await finishMachineLogbook(scannedMachineId, notes || undefined);
+      setIsSubmitting(false);
+      if (result.success) {
+        success(`Praktik di ${machine.name} selesai. Durasi tercatat otomatis.`);
+        setNotes("");
+        window.location.reload();
+      } else {
+        toastError("Gagal menyelesaikan praktik: " + result.error);
+      }
+      return;
+    }
+
+    if (activeLogbook) {
+      toastError(`Anda masih memiliki praktik aktif di ${activeLogbook.machine.name}. Scan QR mesin tersebut untuk menyelesaikan praktik.`);
+      return;
+    }
+
+    setMachineId(scannedMachineId);
+    setActivity("");
+    setShowStartModal(true);
+  };
+
+  const handleStartMachineLogbook = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!scannedMachine) return;
+
+    setIsSubmitting(true);
+    const result = await startMachineLogbook(scannedMachine.id, activity);
+    setIsSubmitting(false);
+
+    if (result.success) {
+      success(`Praktik di ${scannedMachine.name} dimulai.`);
+      setShowStartModal(false);
+      setScannedMachine(null);
+      setActivity("");
+      window.location.reload();
+    } else {
+      toastError("Gagal memulai praktik: " + result.error);
+    }
+  };
 
   const handleCreateLogbook = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,15 +130,23 @@ export default function ClientAssignmentsPage({ currentUser, machines, logbooks,
         </div>
 
         {isMurid && activeTab === "logbook" && (
-          <button 
-            onClick={() => {
-              setShowAddLogModal(true);
-              if (machines.length > 0) setMachineId(machines[0].id);
-            }}
-            className="bg-amber-500 hover:bg-amber-600 text-slate-900 font-semibold px-4 py-2 rounded-lg flex items-center gap-2 transition-colors self-start sm:self-auto text-sm"
-          >
-            <Plus size={16} /> Isi Logbook
-          </button>
+          <div className="flex flex-wrap gap-2 self-start sm:self-auto">
+            <button 
+              onClick={() => setShowQrScanner(true)}
+              className="bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-semibold px-4 py-2 rounded-lg flex items-center gap-2 transition-colors text-sm"
+            >
+              <Scan size={16} /> {activeLogbook ? "Scan Selesai Praktik" : "Scan Mulai Praktik"}
+            </button>
+            <button 
+              onClick={() => {
+                setShowAddLogModal(true);
+                if (machines.length > 0) setMachineId(machines[0].id);
+              }}
+              className="bg-amber-500 hover:bg-amber-600 text-slate-900 font-semibold px-4 py-2 rounded-lg flex items-center gap-2 transition-colors text-sm"
+            >
+              <Plus size={16} /> Isi Manual
+            </button>
+          </div>
         )}
       </div>
 
@@ -103,6 +176,17 @@ export default function ClientAssignmentsPage({ currentUser, machines, logbooks,
 
       {/* Tab Content */}
       <div className="space-y-4">
+        {isMurid && activeTab === "logbook" && activeLogbook && (
+          <div className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-200 rounded-xl p-4 text-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <p className="font-bold">Praktik sedang berjalan</p>
+              <p className="text-xs text-emerald-100/80 mt-1">{activeLogbook.machine.name} — {activeLogbook.activity}</p>
+            </div>
+            <button onClick={() => setShowQrScanner(true)} className="bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold px-4 py-2 rounded-lg flex items-center justify-center gap-2 text-sm">
+              <Scan size={16} /> Scan QR untuk Selesai
+            </button>
+          </div>
+        )}
         {activeTab === "logbook" ? (
           <div className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden shadow-xl">
             <div className="overflow-x-auto">
@@ -113,6 +197,8 @@ export default function ClientAssignmentsPage({ currentUser, machines, logbooks,
                     <th className="p-4 font-semibold border-b border-slate-700">Tanggal</th>
                     <th className="p-4 font-semibold border-b border-slate-700">Mesin</th>
                     <th className="p-4 font-semibold border-b border-slate-700">Aktivitas Praktik</th>
+                    <th className="p-4 font-semibold border-b border-slate-700 text-center">Status</th>
+                    <th className="p-4 font-semibold border-b border-slate-700 text-center">Mulai / Selesai</th>
                     <th className="p-4 font-semibold border-b border-slate-700 text-center">Durasi</th>
                     <th className="p-4 font-semibold border-b border-slate-700">Keterangan / Kondisi Mesin</th>
                   </tr>
@@ -120,7 +206,7 @@ export default function ClientAssignmentsPage({ currentUser, machines, logbooks,
                 <tbody className="divide-y divide-slate-700 text-sm">
                   {logbooks.length === 0 ? (
                     <tr>
-                      <td colSpan={isMurid ? 5 : 6} className="p-8 text-center text-slate-500">
+                      <td colSpan={isMurid ? 7 : 8} className="p-8 text-center text-slate-500">
                         Belum ada catatan logbook.
                       </td>
                     </tr>
@@ -141,7 +227,16 @@ export default function ClientAssignmentsPage({ currentUser, machines, logbooks,
                           <span className="block text-[10px] text-slate-500 uppercase tracking-wider mt-0.5">{log.machine.type}</span>
                         </td>
                         <td className="p-4 text-slate-300">{log.activity}</td>
-                        <td className="p-4 text-center text-amber-500 font-bold">{log.duration} Jam</td>
+                        <td className="p-4 text-center">
+                          <span className={`text-[10px] font-bold px-2 py-1 rounded-full border ${log.status === "InProgress" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30" : "bg-slate-700/40 text-slate-300 border-slate-600"}`}>
+                            {log.status === "InProgress" ? "Berjalan" : "Selesai"}
+                          </span>
+                        </td>
+                        <td className="p-4 text-center text-[10px] text-slate-400 leading-relaxed">
+                          <span className="block">{log.startTime ? new Date(log.startTime).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }) : "-"}</span>
+                          <span className="block">{log.endTime ? new Date(log.endTime).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }) : "-"}</span>
+                        </td>
+                        <td className="p-4 text-center text-amber-500 font-bold">{log.status === "InProgress" ? "-" : `${log.duration} Jam`}</td>
                         <td className="p-4 text-slate-400 text-xs italic">{log.notes || "-"}</td>
                       </tr>
                     ))
@@ -196,6 +291,50 @@ export default function ClientAssignmentsPage({ currentUser, machines, logbooks,
           </div>
         )}
       </div>
+
+      {showQrScanner && (
+        <QrScanner
+          onScan={handleQrScan}
+          onClose={() => setShowQrScanner(false)}
+        />
+      )}
+
+      {showStartModal && scannedMachine && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-slate-800 border border-slate-700 rounded-xl w-full max-w-md shadow-2xl overflow-hidden">
+            <div className="p-4 border-b border-slate-700 flex justify-between items-center bg-slate-900/50">
+              <h3 className="font-bold text-slate-100">Mulai Praktik Mesin</h3>
+              <button onClick={() => setShowStartModal(false)} className="text-slate-400 hover:text-white transition-colors">
+                <X size={20} />
+              </button>
+            </div>
+            <form onSubmit={handleStartMachineLogbook} className="p-6 space-y-4">
+              <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-3 text-sm text-emerald-200">
+                Mesin terdeteksi: <strong>{scannedMachine.name}</strong>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 mb-1 uppercase">Aktivitas Praktikum</label>
+                <input
+                  type="text"
+                  required
+                  value={activity}
+                  onChange={(e) => setActivity(e.target.value)}
+                  placeholder="Contoh: Overhaul pompa sentrifugal"
+                  className="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-amber-500"
+                />
+              </div>
+              <div className="pt-4 flex gap-3 justify-end">
+                <button type="button" onClick={() => setShowStartModal(false)} className="px-4 py-2 rounded-lg text-slate-300 hover:bg-slate-700 transition-colors text-sm font-medium">
+                  Batal
+                </button>
+                <button type="submit" disabled={isSubmitting} className="px-4 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-slate-950 font-bold transition-colors flex items-center gap-2 text-sm">
+                  <Scan size={16} /> {isSubmitting ? "Memulai..." : "Mulai Praktik"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Modal Tambah Logbook (Murid) */}
       {showAddLogModal && (
