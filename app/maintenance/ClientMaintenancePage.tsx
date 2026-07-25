@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Settings, Plus, Save, X, Wrench, User, Calendar, AlertTriangle, ShieldCheck, Scan, Send, Cpu } from "lucide-react";
+import { Settings, Save, X, User, Calendar, Scan, CheckSquare, Plus, AlertCircle, Download } from "lucide-react";
 import { createMaintenanceLog } from "../actions/maintenanceActions";
 import QrScanner from "@/components/QrScanner";
 import { sendBulkNotification } from "../actions/notificationActions";
@@ -11,20 +11,50 @@ import QRCode from "qrcode";
 import { EmptyState } from "@/components/EmptyState";
 
 import { createReservation, getReservations, updateReservationStatus } from "../actions/reservationActions";
+import { createMaintenanceSchedule, completeScheduledMaintenance, deleteMaintenanceSchedule } from "../actions/maintenanceScheduleActions";
+import { createMachineReport, updateMachineReportStatus } from "../actions/machineReportActions";
+import { DragDropZone } from "@/components/DragDropZone";
 
 interface Props {
   currentUser: any;
   machines: any[];
   logs: any[];
   courses: any[];
+  schedules: any[];
+  reports: any[];
 }
 
-export default function ClientMaintenancePage({ currentUser, machines, logs, courses }: Props) {
+export default function ClientMaintenancePage({ currentUser, machines, logs, courses, schedules: initialSchedules, reports: initialReports }: Props) {
   const { success, error: toastError } = useToast();
-  const [activeTab, setActiveTab] = useState<"logs" | "qrcodes" | "reservations">("logs");
+  const [activeTab, setActiveTab] = useState<"logs" | "qrcodes" | "reservations" | "schedules" | "reports">("logs");
   const [showAddModal, setShowAddModal] = useState(false);
   const [showReserveModal, setShowReserveModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [nowTime] = useState(() => Date.now());
+
+  // Schedules and Reports state
+  const [schedules, setSchedules] = useState<any[]>(initialSchedules);
+  const [reports, setReports] = useState<any[]>(initialReports);
+
+  // Add Schedule states
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [scheduleMachineId, setScheduleMachineId] = useState("");
+  const [scheduleTask, setScheduleTask] = useState("");
+  const [scheduleInterval, setScheduleInterval] = useState("90");
+  const [scheduleDueDate, setScheduleDueDate] = useState("");
+
+  // Complete Schedule states
+  const [showCompleteScheduleModal, setShowCompleteScheduleModal] = useState(false);
+  const [selectedScheduleToComplete, setSelectedScheduleToComplete] = useState<any | null>(null);
+  const [scheduleCompletionNotes, setScheduleCompletionNotes] = useState("");
+
+  // Create Machine Report (Ticket) states
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportMachineId, setReportMachineId] = useState("");
+  const [reportIssue, setReportIssue] = useState("");
+  const [reportFileUrl, setReportFileUrl] = useState("");
+  const [reportFileName, setReportFileName] = useState("");
+  const [uploadingReportPhoto, setUploadingReportPhoto] = useState(false);
 
   // Form states
   const [machineId, setMachineId] = useState("");
@@ -57,9 +87,6 @@ export default function ClientMaintenancePage({ currentUser, machines, logs, cou
 
   useEffect(() => {
     if (activeTab === "reservations") {
-      // Pindahkan pemanggilan fetch ke callback async macro-task agar tidak berjalan secara sinkron pada saat render effect.
-      // Atau langsung panggil, karena async function akan dievaluasi setelah render selesai (microtask).
-      // Tetapi untuk amannya (eslint react-hooks/set-state-in-effect), kita letakkan di dalam setImmediate/setTimeout atau periksa dependensinya.
       setTimeout(() => {
         loadReservations();
       }, 0);
@@ -92,6 +119,140 @@ export default function ClientMaintenancePage({ currentUser, machines, logs, cou
       loadReservations();
     } else {
       toastError("Gagal mengajukan reservasi: " + res.error);
+    }
+  };
+
+  const handleCreateSchedule = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!scheduleMachineId || !scheduleTask || !scheduleInterval || !scheduleDueDate) {
+      toastError("Semua field wajib diisi.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    const res = await createMaintenanceSchedule({
+      machineId: scheduleMachineId,
+      task: scheduleTask,
+      intervalDays: Number(scheduleInterval),
+      nextDueDate: new Date(scheduleDueDate)
+    });
+    setIsSubmitting(false);
+
+    if (res.success) {
+      success("Jadwal pemeliharaan berhasil ditambahkan!");
+      setShowScheduleModal(false);
+      setScheduleMachineId("");
+      setScheduleTask("");
+      setScheduleInterval("90");
+      setScheduleDueDate("");
+      window.location.reload();
+    } else {
+      toastError("Gagal menambahkan jadwal: " + res.error);
+    }
+  };
+
+  const handleDeleteSchedule = async (id: string) => {
+    if (!confirm("Apakah Anda yakin ingin menghapus jadwal pemeliharaan ini?")) return;
+    setIsSubmitting(true);
+    const res = await deleteMaintenanceSchedule(id);
+    setIsSubmitting(false);
+    if (res.success) {
+      success("Jadwal pemeliharaan berhasil dihapus!");
+      window.location.reload();
+    } else {
+      toastError("Gagal menghapus jadwal: " + res.error);
+    }
+  };
+
+  const handleCompleteSchedule = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedScheduleToComplete) return;
+
+    setIsSubmitting(true);
+    const res = await completeScheduledMaintenance(selectedScheduleToComplete.id, scheduleCompletionNotes || undefined);
+    setIsSubmitting(false);
+
+    if (res.success) {
+      success("Servis rutin selesai dicatat!");
+      setShowCompleteScheduleModal(false);
+      setSelectedScheduleToComplete(null);
+      setScheduleCompletionNotes("");
+      window.location.reload();
+    } else {
+      toastError("Gagal mencatat penyelesaian servis: " + res.error);
+    }
+  };
+
+  const handleReportPhotoUpload = async (file: File) => {
+    setUploadingReportPhoto(true);
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formData
+      });
+      const data = await res.json();
+      if (data.success) {
+        setReportFileUrl(data.url);
+        setReportFileName(data.fileName || file.name);
+        success("Foto bukti kerusakan berhasil diunggah!");
+      } else {
+        toastError("Gagal mengunggah foto: " + data.error);
+      }
+    } catch {
+      toastError("Terjadi kesalahan saat mengunggah foto.");
+    } finally {
+      setUploadingReportPhoto(false);
+    }
+  };
+
+  const handleCreateReport = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!reportMachineId || !reportIssue) {
+      toastError("Semua field wajib diisi.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    const res = await createMachineReport({
+      machineId: reportMachineId,
+      issue: reportIssue,
+      imageUrl: reportFileUrl || undefined
+    });
+    setIsSubmitting(false);
+
+    if (res.success) {
+      success("Laporan kerusakan berhasil dikirim! Guru piket telah dinotifikasi.");
+      setShowReportModal(false);
+      setReportMachineId("");
+      setReportIssue("");
+      setReportFileUrl("");
+      setReportFileName("");
+      window.location.reload();
+    } else {
+      toastError("Gagal mengirim laporan: " + res.error);
+    }
+  };
+
+  const handleUpdateReportStatus = async (reportId: string, newStatus: "Pending" | "Investigating" | "Fixed" | "Cancelled") => {
+    const actionText = 
+      newStatus === "Investigating" ? "mulai menginvestigasi" :
+      newStatus === "Fixed" ? "menyelesaikan perbaikan mesin" :
+      "membatalkan laporan";
+
+    if (!confirm(`Apakah Anda yakin ingin ${actionText}?`)) return;
+
+    setIsSubmitting(true);
+    const res = await updateMachineReportStatus(reportId, newStatus);
+    setIsSubmitting(false);
+
+    if (res.success) {
+      success("Status laporan kerusakan berhasil diperbarui!");
+      window.location.reload();
+    } else {
+      toastError("Gagal memperbarui status laporan: " + res.error);
     }
   };
 
@@ -352,7 +513,7 @@ export default function ClientMaintenancePage({ currentUser, machines, logs, cou
               </div>
             ))}
           </div>
-        ) : (
+        ) : activeTab === "reservations" ? (
           /* JADWAL RESERVASI MESIN BENGKEL */
           <div className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden shadow-xl animate-in fade-in duration-300">
             <div className="p-4 border-b border-slate-700 bg-slate-900/10 flex justify-between items-center">
@@ -453,6 +614,189 @@ export default function ClientMaintenancePage({ currentUser, machines, logs, cou
                         />
                       </td>
                     </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ) : activeTab === "schedules" ? (
+          /* JADWAL PREVENTIVE MAINTENANCE */
+          <div className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden shadow-xl animate-in fade-in duration-300">
+            <div className="p-4 border-b border-slate-700 bg-slate-900/10">
+              <span className="text-xs text-slate-500">{schedules.length} jadwal pemeliharaan rutin terdaftar</span>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse text-sm">
+                <thead>
+                  <tr className="bg-slate-900/50 text-slate-400 text-xs uppercase tracking-wider">
+                    <th className="p-4 font-semibold border-b border-slate-700">Mesin</th>
+                    <th className="p-4 font-semibold border-b border-slate-700">Tugas Servis</th>
+                    <th className="p-4 font-semibold border-b border-slate-700 text-center">Interval</th>
+                    <th className="p-4 font-semibold border-b border-slate-700 text-center">Jadwal Servis Berikutnya</th>
+                    <th className="p-4 font-semibold border-b border-slate-700 text-center">Servis Terakhir</th>
+                    {isGuruOrAdmin && <th className="p-4 font-semibold border-b border-slate-700 text-right">Aksi</th>}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-700">
+                  {schedules.length === 0 ? (
+                    <tr>
+                      <td colSpan={isGuruOrAdmin ? 6 : 5} className="py-8">
+                        <EmptyState
+                          icon="attendance"
+                          title="Tidak ada jadwal"
+                          description="Belum ada jadwal preventive maintenance mesin terdaftar."
+                        />
+                      </td>
+                    </tr>
+                  ) : (
+                    schedules.map((sch) => {
+                      const isOverdue = new Date(sch.nextDueDate).getTime() < nowTime;
+
+                      return (
+                        <tr key={sch.id} className="hover:bg-slate-700/10 transition-colors text-xs">
+                          <td className="p-4 font-semibold text-slate-300">
+                            {sch.machine.name}
+                            <span className="block text-[9px] text-slate-500 uppercase tracking-wider mt-0.5">{sch.machine.type}</span>
+                          </td>
+                          <td className="p-4 text-slate-200 font-medium">{sch.task}</td>
+                          <td className="p-4 text-center font-bold text-slate-300">{sch.intervalDays} Hari</td>
+                          <td className="p-4 text-center">
+                            <span className={`px-2 py-0.5 rounded font-bold ${
+                              isOverdue 
+                                ? "bg-red-500/15 text-red-400 border border-red-500/30" 
+                                : "bg-slate-700 text-slate-300"
+                            }`}>
+                              {new Date(sch.nextDueDate).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" })}
+                            </span>
+                          </td>
+                          <td className="p-4 text-center text-slate-400">
+                            {sch.lastServiced 
+                              ? new Date(sch.lastServiced).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" }) 
+                              : "-"}
+                          </td>
+                          {isGuruOrAdmin && (
+                            <td className="p-4 text-right space-x-1.5 whitespace-nowrap">
+                              <button
+                                onClick={() => {
+                                  setSelectedScheduleToComplete(sch);
+                                  setScheduleCompletionNotes("");
+                                  setShowCompleteScheduleModal(true);
+                                }}
+                                className="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded text-[10px] transition-colors"
+                              >
+                                Tandai Selesai
+                              </button>
+                              <button
+                                onClick={() => handleDeleteSchedule(sch.id)}
+                                className="px-2 py-1 bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-white border border-red-500/20 rounded text-[10px] transition-all"
+                              >
+                                Hapus
+                              </button>
+                            </td>
+                          )}
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ) : (
+          /* LAPORAN KERUSAKAN / TICKETS */
+          <div className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden shadow-xl animate-in fade-in duration-300">
+            <div className="p-4 border-b border-slate-700 bg-slate-900/10">
+              <span className="text-xs text-slate-500">{reports.length} laporan kerusakan terdaftar</span>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse text-sm">
+                <thead>
+                  <tr className="bg-slate-900/50 text-slate-400 text-xs uppercase tracking-wider">
+                    <th className="p-4 font-semibold border-b border-slate-700">Tanggal Laporan</th>
+                    <th className="p-4 font-semibold border-b border-slate-700">Mesin</th>
+                    <th className="p-4 font-semibold border-b border-slate-700">Kendala Kerusakan</th>
+                    <th className="p-4 font-semibold border-b border-slate-700">Pelapor</th>
+                    <th className="p-4 font-semibold border-b border-slate-700 text-center">Status</th>
+                    {isGuruOrAdmin && <th className="p-4 font-semibold border-b border-slate-700 text-right">Aksi</th>}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-700">
+                  {reports.length === 0 ? (
+                    <tr>
+                      <td colSpan={isGuruOrAdmin ? 6 : 5} className="py-8">
+                        <EmptyState
+                          icon="file"
+                          title="Tidak ada laporan"
+                          description="Belum ada laporan kerusakan mesin masuk."
+                        />
+                      </td>
+                    </tr>
+                  ) : (
+                    reports.map((rep) => (
+                      <tr key={rep.id} className="hover:bg-slate-700/10 transition-colors text-xs">
+                        <td className="p-4 text-slate-400">
+                          {new Date(rep.createdAt).toLocaleString("id-ID", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
+                        </td>
+                        <td className="p-4 font-semibold text-slate-300">
+                          {rep.machine.name}
+                          <span className="block text-[9px] text-slate-500 uppercase tracking-wider mt-0.5">{rep.machine.type}</span>
+                        </td>
+                        <td className="p-4 space-y-2">
+                          <p className="text-slate-200 font-medium leading-relaxed">{rep.issue}</p>
+                          {rep.imageUrl && (
+                            <a href={rep.imageUrl} target="_blank" rel="noopener noreferrer" className="text-red-400 hover:underline flex items-center gap-1 text-[10px] font-bold">
+                              <Download size={10} /> Lihat Foto Kerusakan
+                            </a>
+                          )}
+                        </td>
+                        <td className="p-4">
+                          <p className="font-semibold text-slate-300">{rep.reporter.name}</p>
+                          <span className="text-[9px] text-slate-500 uppercase tracking-wider font-bold">{rep.reporter.role}</span>
+                        </td>
+                        <td className="p-4 text-center">
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded border uppercase ${
+                            rep.status === "Fixed" 
+                              ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" 
+                              : rep.status === "Investigating" 
+                              ? "bg-amber-500/15 text-amber-400 border-amber-500/30" 
+                              : rep.status === "Cancelled" 
+                              ? "bg-slate-700 text-slate-400 border-slate-600" 
+                              : "bg-red-500/15 text-red-400 border-red-500/30"
+                          }`}>
+                            {rep.status}
+                          </span>
+                        </td>
+                        {isGuruOrAdmin && (
+                          <td className="p-4 text-right space-x-1.5 whitespace-nowrap">
+                            {rep.status === "Pending" && (
+                              <button
+                                onClick={() => handleUpdateReportStatus(rep.id, "Investigating")}
+                                className="px-2 py-1 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded text-[10px] transition-colors"
+                              >
+                                Investigasi
+                              </button>
+                            )}
+                            {["Pending", "Investigating"].includes(rep.status) && (
+                              <button
+                                onClick={() => handleUpdateReportStatus(rep.id, "Fixed")}
+                                className="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded text-[10px] transition-colors"
+                              >
+                                Tandai Beres
+                              </button>
+                            )}
+                            {["Pending", "Investigating"].includes(rep.status) && (
+                              <button
+                                onClick={() => handleUpdateReportStatus(rep.id, "Cancelled")}
+                                className="px-2 py-1 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded text-[10px] transition-colors"
+                              >
+                                Batal
+                              </button>
+                            )}
+                            {!["Pending", "Investigating"].includes(rep.status) && <span className="text-slate-500">—</span>}
+                          </td>
+                        )}
+                      </tr>
+                    ))
                   )}
                 </tbody>
               </table>
@@ -664,6 +1008,230 @@ export default function ClientMaintenancePage({ currentUser, machines, logs, cou
                   className="px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-slate-900 font-bold transition-colors flex items-center gap-2 text-sm"
                 >
                   {isSubmitting ? "Mengajukan..." : "Ajukan Booking"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Tambah Jadwal Servis Rutin (Guru/Admin) */}
+      {showScheduleModal && (
+        <div 
+          onClick={() => setShowScheduleModal(false)}
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="bg-slate-800 border border-slate-700 rounded-xl w-full max-w-md shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200"
+          >
+            <div className="p-4 border-b border-slate-700 flex justify-between items-center bg-slate-900/50">
+              <h3 className="font-bold text-slate-100 flex items-center gap-2">
+                <Calendar className="text-amber-500" size={18} /> Tambah Jadwal Pemeliharaan Rutin
+              </h3>
+              <button onClick={() => setShowScheduleModal(false)} className="text-slate-400 hover:text-white transition-colors">✕</button>
+            </div>
+            <form onSubmit={handleCreateSchedule} className="p-6 space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 mb-1 uppercase">Pilih Mesin</label>
+                <select 
+                  required
+                  value={scheduleMachineId}
+                  onChange={(e) => setScheduleMachineId(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-amber-500"
+                >
+                  {machines.map(m => (
+                    <option key={m.id} value={m.id}>{m.name} ({m.type})</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 mb-1 uppercase">Tugas Pemeliharaan Rutin</label>
+                <input 
+                  type="text" 
+                  required
+                  value={scheduleTask}
+                  onChange={(e) => setScheduleTask(e.target.value)}
+                  placeholder="Contoh: Penggantian Oli Gearbox Utama" 
+                  className="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-amber-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-400 mb-1 uppercase">Interval Servis (Hari)</label>
+                  <input 
+                    type="number" 
+                    required
+                    min="1"
+                    value={scheduleInterval}
+                    onChange={(e) => setScheduleInterval(e.target.value)}
+                    placeholder="Contoh: 90" 
+                    className="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-amber-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-400 mb-1 uppercase">Jadwal Pertama Kali</label>
+                  <input 
+                    type="date" 
+                    required
+                    value={scheduleDueDate}
+                    onChange={(e) => setScheduleDueDate(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-amber-500"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-4 flex gap-3 justify-end border-t border-slate-700">
+                <button 
+                  type="button" 
+                  onClick={() => setShowScheduleModal(false)}
+                  className="px-4 py-2 rounded-lg text-slate-300 hover:bg-slate-700 transition-colors text-xs font-medium"
+                >
+                  Batal
+                </button>
+                <button 
+                  type="submit" 
+                  disabled={isSubmitting}
+                  className="px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-slate-900 font-bold transition-colors flex items-center gap-2 text-sm"
+                >
+                  {isSubmitting ? "Menyimpan..." : "Simpan Jadwal"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Selesaikan Servis Rutin (Guru/Admin) */}
+      {showCompleteScheduleModal && selectedScheduleToComplete && (
+        <div 
+          onClick={() => setShowCompleteScheduleModal(false)}
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="bg-slate-800 border border-slate-700 rounded-xl w-full max-w-md shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200"
+          >
+            <div className="p-4 border-b border-slate-700 flex justify-between items-center bg-slate-900/50">
+              <h3 className="font-bold text-slate-100 flex items-center gap-2">
+                <CheckSquare className="text-emerald-500" size={18} /> Selesaikan Servis Rutin
+              </h3>
+              <button onClick={() => setShowCompleteScheduleModal(false)} className="text-slate-400 hover:text-white transition-colors">✕</button>
+            </div>
+            <form onSubmit={handleCompleteSchedule} className="p-6 space-y-4">
+              <div className="bg-slate-900 border border-slate-700 p-3 rounded-lg text-xs space-y-1">
+                <p className="text-slate-400">Mesin: <strong className="text-slate-200">{selectedScheduleToComplete.machine.name}</strong></p>
+                <p className="text-slate-400">Tugas: <strong className="text-slate-200">{selectedScheduleToComplete.task}</strong></p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 mb-1 uppercase">Catatan Pemeliharaan (Oli baru / Penggantian parts)</label>
+                <textarea 
+                  rows={3}
+                  value={scheduleCompletionNotes}
+                  onChange={(e) => setScheduleCompletionNotes(e.target.value)}
+                  placeholder="Contoh: Mengganti oli Shell Tellus 46, membersihkan filter udara, dan mengencangkan baut-baut kendor."
+                  className="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-amber-500 resize-none text-xs"
+                />
+              </div>
+
+              <div className="pt-4 flex gap-3 justify-end border-t border-slate-700">
+                <button 
+                  type="button" 
+                  onClick={() => setShowCompleteScheduleModal(false)}
+                  className="px-4 py-2 rounded-lg text-slate-300 hover:bg-slate-700 transition-colors text-sm font-medium"
+                >
+                  Batal
+                </button>
+                <button 
+                  type="submit" 
+                  disabled={isSubmitting}
+                  className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold transition-colors flex items-center gap-2 text-sm"
+                >
+                  {isSubmitting ? "Menyimpan..." : "Konfirmasi Selesai"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Laporkan Kerusakan Mesin (Ticketing) */}
+      {showReportModal && (
+        <div 
+          onClick={() => setShowReportModal(false)}
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="bg-slate-800 border border-slate-700 rounded-xl w-full max-w-md shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200"
+          >
+            <div className="p-4 border-b border-slate-700 flex justify-between items-center bg-slate-900/50">
+              <h3 className="font-bold text-slate-100 flex items-center gap-2">
+                <AlertCircle className="text-red-500" size={18} /> Laporkan Kerusakan Mesin
+              </h3>
+              <button onClick={() => setShowReportModal(false)} className="text-slate-400 hover:text-white transition-colors">✕</button>
+            </div>
+            <form onSubmit={handleCreateReport} className="p-6 space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 mb-1 uppercase">Pilih Mesin Bermasalah</label>
+                <select 
+                  required
+                  value={reportMachineId}
+                  onChange={(e) => setReportMachineId(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-amber-500"
+                >
+                  {machines.map(m => (
+                    <option key={m.id} value={m.id}>{m.name} ({m.type})</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 mb-1 uppercase">Deskripsi Kerusakan / Kendala</label>
+                <textarea 
+                  rows={3}
+                  required
+                  value={reportIssue}
+                  onChange={(e) => setReportIssue(e.target.value)}
+                  placeholder="Contoh: Kompresor bergetar sangat kencang, terdengar bunyi benturan besi di dalam tangki, dan tekanan udara tidak kunjung naik."
+                  className="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-amber-500 resize-none text-xs"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase">Unggah Bukti Kerusakan (Foto/Gambar. Maks 10MB)</label>
+                <DragDropZone
+                  accept=".jpg,.jpeg,.png,.webp"
+                  maxSizeMB={10}
+                  onFileSelect={handleReportPhotoUpload}
+                />
+                {uploadingReportPhoto && (
+                  <p className="text-xs text-amber-500 animate-pulse mt-2">Mengunggah bukti foto...</p>
+                )}
+                {!uploadingReportPhoto && reportFileName && (
+                  <div className="mt-2 p-2 bg-emerald-500/10 border border-emerald-500/20 rounded text-emerald-400 text-xs truncate">
+                    Foto berhasil diunggah: <strong>{reportFileName}</strong>
+                  </div>
+                )}
+              </div>
+
+              <div className="pt-4 flex gap-3 justify-end border-t border-slate-700">
+                <button 
+                  type="button" 
+                  onClick={() => setShowReportModal(false)}
+                  className="px-4 py-2 rounded-lg text-slate-300 hover:bg-slate-700 transition-colors text-sm font-medium"
+                >
+                  Batal
+                </button>
+                <button 
+                  type="submit" 
+                  disabled={isSubmitting || uploadingReportPhoto || !reportIssue}
+                  className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white font-bold transition-colors flex items-center gap-2 text-sm"
+                >
+                  {isSubmitting ? "Mengirim..." : "Kirim Laporan Kerusakan"}
                 </button>
               </div>
             </form>

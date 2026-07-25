@@ -3,21 +3,46 @@
 import React, { useState } from "react";
 import { Wrench, Plus, Save, X, User, Check, Ban, Scan } from "lucide-react";
 import { requestToolLoan, updateLoanStatus, createTool } from "../actions/toolActions";
+import { createSparePart, deleteSparePart, recordSparePartUsage } from "../actions/sparePartActions";
 import QrScanner from "@/components/QrScanner";
 import { useToast } from "@/lib/toast";
 import { LocalQrCode } from "@/components/LocalQrCode";
 import QRCode from "qrcode";
+import { Archive, AlertCircle, Trash2, History } from "lucide-react";
 
 interface Props {
   currentUser: any;
   tools: any[];
   loans: any[];
+  spareParts: any[];
+  sparePartUsages: any[];
+  machines: any[];
 }
 
-export default function ClientToolsPage({ currentUser, tools, loans }: Props) {
+export default function ClientToolsPage({ currentUser, tools, loans, spareParts: initialSpareParts, sparePartUsages: initialUsages, machines }: Props) {
   const { success, error: toastError, warning, info } = useToast();
-  const [activeTab, setActiveTab] = useState<"inventory" | "loans">("inventory");
+  const [activeTab, setActiveTab] = useState<"inventory" | "loans" | "spareparts">("inventory");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Spareparts local states
+  const [spareParts, setSpareParts] = useState<any[]>(initialSpareParts);
+  const [usages, setUsages] = useState<any[]>(initialUsages);
+
+  // Add Sparepart Form states
+  const [showAddSpareModal, setShowAddSpareModal] = useState(false);
+  const [spareName, setSpareName] = useState("");
+  const [spareCategory, setSpareCategory] = useState("Mechanical");
+  const [spareStock, setSpareStock] = useState("");
+  const [spareMinStock, setSpareMinStock] = useState("1");
+  const [spareUnit, setSpareUnit] = useState("Pcs");
+  const [spareLocation, setSpareLocation] = useState("");
+
+  // Use Sparepart Form states
+  const [showUseSpareModal, setShowUseSpareModal] = useState(false);
+  const [selectedSpareToUse, setSelectedSpareToUse] = useState<any | null>(null);
+  const [useQty, setUseQty] = useState("1");
+  const [useMachineId, setUseMachineId] = useState("");
+  const [useNotes, setUseNotes] = useState("");
 
   // Add Tool state (Admin)
   const [showAddModal, setShowAddModal] = useState(false);
@@ -102,6 +127,78 @@ export default function ClientToolsPage({ currentUser, tools, loans }: Props) {
     }
   };
 
+  const handleCreateSpare = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!spareName.trim() || !spareCategory || !spareStock || !spareMinStock || !spareUnit) {
+      toastError("Semua field wajib diisi.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    const res = await createSparePart({
+      name: spareName,
+      category: spareCategory,
+      stock: Number(spareStock),
+      minStock: Number(spareMinStock),
+      unit: spareUnit,
+      location: spareLocation || undefined
+    });
+    setIsSubmitting(false);
+
+    if (res.success) {
+      success("Suku cadang berhasil ditambahkan!");
+      setShowAddSpareModal(false);
+      setSpareName("");
+      setSpareStock("");
+      setSpareMinStock("1");
+      setSpareLocation("");
+      window.location.reload();
+    } else {
+      toastError("Gagal menambahkan suku cadang: " + res.error);
+    }
+  };
+
+  const handleDeleteSpare = async (id: string, name: string) => {
+    if (!confirm(`Apakah Anda yakin ingin menghapus "${name}" dari inventori?`)) return;
+
+    setIsSubmitting(true);
+    const res = await deleteSparePart(id);
+    setIsSubmitting(false);
+
+    if (res.success) {
+      success("Suku cadang berhasil dihapus!");
+      window.location.reload();
+    } else {
+      toastError("Gagal menghapus suku cadang: " + res.error);
+    }
+  };
+
+  const handleUseSpare = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedSpareToUse) return;
+
+    setIsSubmitting(true);
+    const res = await recordSparePartUsage({
+      sparePartId: selectedSpareToUse.id,
+      quantity: Number(useQty),
+      machineId: useMachineId || undefined,
+      notes: useNotes || undefined
+    });
+    setIsSubmitting(false);
+
+    if (res.success) {
+      success("Penggunaan suku cadang dicatat!");
+      setShowUseSpareModal(false);
+      setSelectedSpareToUse(null);
+      setUseQty("1");
+      setUseMachineId("");
+      setUseNotes("");
+      window.location.reload();
+    } else {
+      toastError("Gagal mencatat penggunaan: " + res.error);
+    }
+  };
+
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       {/* Header */}
@@ -132,6 +229,14 @@ export default function ClientToolsPage({ currentUser, tools, loans }: Props) {
               <Plus size={16} /> Tambah Inventori Alat
             </button>
           )}
+          {isAdmin && activeTab === "spareparts" && (
+            <button 
+              onClick={() => setShowAddSpareModal(true)}
+              className="bg-amber-500 hover:bg-amber-600 text-slate-900 font-semibold px-4 py-2 rounded-lg flex items-center gap-2 transition-colors self-start sm:self-auto text-sm"
+            >
+              <Plus size={16} /> Tambah Suku Cadang
+            </button>
+          )}
         </div>
       </div>
 
@@ -156,6 +261,16 @@ export default function ClientToolsPage({ currentUser, tools, loans }: Props) {
           }`}
         >
           Riwayat & Persetujuan Pinjam ({loans.length})
+        </button>
+        <button 
+          onClick={() => setActiveTab("spareparts")}
+          className={`px-5 py-2.5 font-medium text-sm border-b-2 transition-colors ${
+            activeTab === "spareparts" 
+              ? "border-amber-500 text-amber-500 font-bold" 
+              : "border-transparent text-slate-400 hover:text-slate-200"
+          }`}
+        >
+          Suku Cadang & Pelumas ({spareParts.length})
         </button>
       </div>
 
@@ -231,7 +346,7 @@ export default function ClientToolsPage({ currentUser, tools, loans }: Props) {
               ))
             )}
           </div>
-        ) : (
+        ) : activeTab === "loans" ? (
           /* Transaksi Peminjaman Alat */
           <div className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden shadow-xl">
             <div className="overflow-x-auto">
@@ -397,6 +512,120 @@ export default function ClientToolsPage({ currentUser, tools, loans }: Props) {
               ))}
             </div>
           </div>
+        ) : (
+          /* KATALOG SUKU CADANG / SPAREPARTS & LUBRICANTS */
+          <div className="space-y-4 animate-in fade-in duration-300">
+            {/* Grid Suku Cadang */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {spareParts.length === 0 ? (
+                <p className="text-sm text-slate-500 col-span-full text-center py-8">Belum ada suku cadang terdaftar.</p>
+              ) : (
+                spareParts.map((part) => {
+                  const isLow = part.stock <= part.minStock;
+
+                  return (
+                    <div key={part.id} className="bg-slate-800 border border-slate-700 rounded-xl p-5 shadow-lg flex flex-col justify-between hover:border-slate-600 transition-all relative">
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h3 className="font-bold text-slate-100 text-base md:text-lg leading-tight">{part.name}</h3>
+                            <p className="text-amber-500 text-xs font-semibold mt-1">{part.category}</p>
+                          </div>
+                          {isAdmin && (
+                            <button 
+                              onClick={() => handleDeleteSpare(part.id, part.name)}
+                              className="text-slate-500 hover:text-red-400 p-1"
+                              title="Hapus Suku Cadang"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          )}
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4 border-y border-slate-700/50 py-3 text-xs text-slate-400">
+                          <div>
+                            <p className="text-[10px] uppercase font-bold text-slate-500">Stok Aktif</p>
+                            <p className={`text-sm font-extrabold mt-1 ${isLow ? 'text-red-400' : 'text-slate-200'}`}>
+                              {part.stock} {part.unit}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] uppercase font-bold text-slate-500">Batas Minimum</p>
+                            <p className="text-sm font-bold text-slate-200 mt-1">
+                              {part.minStock} {part.unit}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="text-xs text-slate-400 space-y-1">
+                          <p>Lokasi Penyimpanan: <strong className="text-slate-300">{part.location || "-"}</strong></p>
+                        </div>
+                      </div>
+
+                      {isGuruOrAdmin && (
+                        <div className="mt-5 pt-3 border-t border-slate-700/50">
+                          <button
+                            onClick={() => {
+                              setSelectedSpareToUse(part);
+                              setUseQty("1");
+                              setUseMachineId("");
+                              setUseNotes("");
+                              setShowUseSpareModal(true);
+                            }}
+                            className="w-full bg-slate-900 border border-slate-700 hover:border-slate-600 text-slate-300 font-semibold py-2 rounded-lg flex items-center justify-center gap-1.5 text-xs transition-colors"
+                          >
+                            <Archive size={14} /> Catat Pemakaian Suku Cadang
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Riwayat Penggunaan */}
+            <div className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden shadow-xl mt-6">
+              <div className="p-4 border-b border-slate-700 bg-slate-900/10 flex items-center gap-2">
+                <History size={16} className="text-slate-400" />
+                <h3 className="font-semibold text-slate-200 text-sm">Riwayat Penggunaan Suku Cadang</h3>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr className="bg-slate-900/50 text-slate-400 text-[10px] uppercase tracking-wider">
+                      <th className="p-4 font-semibold border-b border-slate-700">Tanggal</th>
+                      <th className="p-4 font-semibold border-b border-slate-700">Suku Cadang</th>
+                      <th className="p-4 font-semibold border-b border-slate-700 text-center">Jumlah</th>
+                      <th className="p-4 font-semibold border-b border-slate-700">Mesin Terkait</th>
+                      <th className="p-4 font-semibold border-b border-slate-700">Petugas Pengambil</th>
+                      <th className="p-4 font-semibold border-b border-slate-700">Keterangan</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-700/50">
+                    {usages.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="p-6 text-center text-slate-500">Belum ada riwayat penggunaan suku cadang.</td>
+                      </tr>
+                    ) : (
+                      usages.map((u) => (
+                        <tr key={u.id} className="hover:bg-slate-700/10 transition-colors text-[11px]">
+                          <td className="p-4 text-slate-400">
+                            {new Date(u.createdAt).toLocaleString("id-ID", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
+                          </td>
+                          <td className="p-4 font-semibold text-slate-200">{u.sparePart.name}</td>
+                          <td className="p-4 text-center font-bold text-slate-300">{u.quantity} {u.sparePart.unit}</td>
+                          <td className="p-4 text-slate-300">{u.machine ? u.machine.name : "Umum / Tidak Terikat"}</td>
+                          <td className="p-4 text-slate-300">{u.usedBy}</td>
+                          <td className="p-4 text-slate-400 italic">{u.notes || "-"}</td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
         )}
       </div>
 
@@ -540,6 +769,208 @@ export default function ClientToolsPage({ currentUser, tools, loans }: Props) {
                   className="px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-slate-900 font-bold transition-colors flex items-center gap-2 text-sm"
                 >
                   {isSubmitting ? "Mengirim..." : "Kirim Permintaan"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Add Sparepart (Admin Only) */}
+      {showAddSpareModal && (
+        <div 
+          onClick={() => setShowAddSpareModal(false)}
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="bg-slate-800 border border-slate-700 rounded-xl w-full max-w-md shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200"
+          >
+            <div className="p-4 border-b border-slate-700 flex justify-between items-center bg-slate-900/50">
+              <h3 className="font-bold text-slate-100 flex items-center gap-2">
+                <Archive className="text-amber-500" size={18} /> Tambah Suku Cadang Baru
+              </h3>
+              <button onClick={() => setShowAddSpareModal(false)} className="text-slate-400 hover:text-white transition-colors">✕</button>
+            </div>
+            <form onSubmit={handleCreateSpare} className="p-6 space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 mb-1 uppercase">Nama Suku Cadang & Spek</label>
+                <input 
+                  type="text" 
+                  required
+                  value={spareName}
+                  onChange={(e) => setSpareName(e.target.value)}
+                  placeholder="Contoh: Bearing SKF 6204-2RSH" 
+                  className="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-amber-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-400 mb-1 uppercase">Kategori</label>
+                  <select
+                    value={spareCategory}
+                    onChange={(e) => setSpareCategory(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-amber-500"
+                  >
+                    <option value="Mechanical">Mechanical (Mekanis)</option>
+                    <option value="Electrical">Electrical (Kelistrikan)</option>
+                    <option value="Pneumatic">Pneumatic</option>
+                    <option value="Hydraulic">Hydraulic</option>
+                    <option value="Lubricant">Lubricant (Pelumas)</option>
+                    <option value="Lainnya">Lainnya</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-400 mb-1 uppercase">Satuan Unit</label>
+                  <input 
+                    type="text" 
+                    required
+                    value={spareUnit}
+                    onChange={(e) => setSpareUnit(e.target.value)}
+                    placeholder="Contoh: Pcs / Set / Liter" 
+                    className="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-amber-500"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-400 mb-1 uppercase">Stok Awal</label>
+                  <input 
+                    type="number" 
+                    required
+                    min="0"
+                    value={spareStock}
+                    onChange={(e) => setSpareStock(e.target.value)}
+                    placeholder="0" 
+                    className="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-amber-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-400 mb-1 uppercase">Batas Stok Minimum</label>
+                  <input 
+                    type="number" 
+                    required
+                    min="0"
+                    value={spareMinStock}
+                    onChange={(e) => setSpareMinStock(e.target.value)}
+                    placeholder="1" 
+                    className="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-amber-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 mb-1 uppercase">Lokasi Penyimpanan (Opsional)</label>
+                <input 
+                  type="text" 
+                  value={spareLocation}
+                  onChange={(e) => setSpareLocation(e.target.value)}
+                  placeholder="Contoh: Lemari Spareparts B-3" 
+                  className="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-amber-500"
+                />
+              </div>
+
+              <div className="pt-4 flex gap-3 justify-end border-t border-slate-700">
+                <button 
+                  type="button" 
+                  onClick={() => setShowAddSpareModal(false)}
+                  className="px-4 py-2 rounded-lg text-slate-300 hover:bg-slate-700 transition-colors text-xs font-medium"
+                >
+                  Batal
+                </button>
+                <button 
+                  type="submit" 
+                  disabled={isSubmitting}
+                  className="px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-slate-900 font-bold transition-colors flex items-center gap-2 text-sm"
+                >
+                  {isSubmitting ? "Menyimpan..." : "Simpan Suku Cadang"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Use Sparepart (Guru/Admin Only) */}
+      {showUseSpareModal && selectedSpareToUse && (
+        <div 
+          onClick={() => setShowUseSpareModal(false)}
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="bg-slate-800 border border-slate-700 rounded-xl w-full max-w-md shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200"
+          >
+            <div className="p-4 border-b border-slate-700 flex justify-between items-center bg-slate-900/50">
+              <h3 className="font-bold text-slate-100 flex items-center gap-2">
+                <Archive className="text-emerald-500" size={18} /> Catat Pemakaian Suku Cadang
+              </h3>
+              <button onClick={() => setShowUseSpareModal(false)} className="text-slate-400 hover:text-white transition-colors">✕</button>
+            </div>
+            <form onSubmit={handleUseSpare} className="p-6 space-y-4">
+              <div className="bg-slate-900 border border-slate-700 p-3 rounded-lg text-xs space-y-1">
+                <p className="text-slate-400">Nama Suku Cadang: <strong className="text-slate-200">{selectedSpareToUse.name}</strong></p>
+                <p className="text-slate-400">Sisa Stok: <strong className="text-amber-500">{selectedSpareToUse.stock} {selectedSpareToUse.unit}</strong></p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-400 mb-1 uppercase">Jumlah Diambil</label>
+                  <input 
+                    type="number" 
+                    required
+                    min="1"
+                    max={selectedSpareToUse.stock}
+                    value={useQty}
+                    onChange={(e) => setUseQty(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-amber-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-400 mb-1 uppercase">Digunakan di Mesin</label>
+                  <select
+                    value={useMachineId}
+                    onChange={(e) => setUseMachineId(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-amber-500"
+                  >
+                    <option value="">Umum (Tidak terikat mesin)</option>
+                    {machines.map((m) => (
+                      <option key={m.id} value={m.id}>{m.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 mb-1 uppercase">Catatan Keterangan / Keperluan</label>
+                <textarea 
+                  rows={3}
+                  value={useNotes}
+                  onChange={(e) => setUseNotes(e.target.value)}
+                  placeholder="Contoh: Digunakan saat overhaul pompa sentrifugal industri Ebara."
+                  className="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-amber-500 resize-none text-xs"
+                />
+              </div>
+
+              <div className="pt-4 flex gap-3 justify-end border-t border-slate-700">
+                <button 
+                  type="button" 
+                  onClick={() => setShowUseSpareModal(false)}
+                  className="px-4 py-2 rounded-lg text-slate-300 hover:bg-slate-700 transition-colors text-xs font-medium"
+                >
+                  Batal
+                </button>
+                <button 
+                  type="submit" 
+                  disabled={isSubmitting || selectedSpareToUse.stock === 0}
+                  className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold transition-colors flex items-center gap-2 text-sm"
+                >
+                  {isSubmitting ? "Menyimpan..." : "Simpan Pemakaian"}
                 </button>
               </div>
             </form>

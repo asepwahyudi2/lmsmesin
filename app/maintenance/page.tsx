@@ -43,12 +43,28 @@ export default async function MaintenancePage() {
     courses = await prisma.course.findMany();
   }
 
+  // Tarik schedules & reports
+  const schedules = await prisma.maintenanceSchedule.findMany({
+    include: { machine: { select: { name: true, type: true } } },
+    orderBy: { nextDueDate: "asc" }
+  });
+
+  const reports = await prisma.machineReport.findMany({
+    include: {
+      machine: { select: { name: true, type: true } },
+      reporter: { select: { name: true, role: true } }
+    },
+    orderBy: { createdAt: "desc" }
+  });
+
   return (
     <ClientMaintenancePage 
       currentUser={currentUser} 
       machines={machines} 
       logs={logs} 
       courses={courses}
+      schedules={schedules}
+      reports={reports}
     />
   );
 }

@@ -44,6 +44,7 @@ model User {
   reservations       MachineReservation[]
   lessonPlans        LessonPlan[]
   lspStatuses        StudentLspStatus[]
+  machineReports     MachineReport[]
 }
 
 model Course {
@@ -190,11 +191,16 @@ model Machine {
   type        String   // Bubut, Frais, CNC, Las, Gerinda, dll
   status      String   // Ready, Maintenance, Broken
   notes       String?
+  manualUrl   String?  @db.LongText // Tautan buku manual mesin
+  sopUrl      String?  @db.LongText // Tautan file SOP pengoperasian
   updatedAt   DateTime @updatedAt
   logbooks    Logbook[]
   enrollments Enrollment[]
   maintenanceLogs MaintenanceLog[]
   reservations MachineReservation[]
+  reports      MachineReport[]
+  sparePartUsages SparePartUsage[]
+  schedules    MaintenanceSchedule[]
 }
 
 model Announcement {
@@ -531,4 +537,63 @@ model StudentLspStatus {
   @@index([studentId])
   @@index([unitId])
   @@index([courseId])
+}
+
+model MachineReport {
+  id          String   @id @default(cuid())
+  machineId   String
+  machine     Machine  @relation(fields: [machineId], references: [id], onDelete: Cascade)
+  reporterId  String
+  reporter    User     @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+  issue       String   // Deskripsi kerusakan
+  imageUrl    String?  @db.LongText // Tautan foto bukti kerusakan
+  status      String   @default("Pending") // Pending, Investigating, Fixed, Cancelled
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([machineId])
+  @@index([reporterId])
+}
+
+model SparePart {
+  id        String   @id @default(cuid())
+  name      String   // Contoh: Bearing 6204, O-Ring 25mm, V-Belt A-42
+  category  String   // Mechanical, Electrical, Pneumatic, Hydraulic, Lubricant, dll
+  stock     Int      @default(0)
+  minStock  Int      @default(1) // Peringatan jika stok di bawah batas aman
+  unit      String   // Pcs, Set, Liter, Roll, dll
+  location  String?  // Contoh: Lemari Spareparts B-2
+  usages    SparePartUsage[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model SparePartUsage {
+  id            String   @id @default(cuid())
+  sparePartId   String
+  sparePart     SparePart @relation(fields: [sparePartId], references: [id], onDelete: Cascade)
+  machineId     String?
+  machine       Machine?  @relation(fields: [machineId], references: [id], onDelete: SetNull)
+  quantity      Int      @default(1)
+  notes         String?  // Contoh: Digunakan saat servis berkala kompresor
+  usedBy        String   // Nama guru/teknisi yang mengambil
+  createdAt     DateTime @default(now())
+
+  @@index([sparePartId])
+  @@index([machineId])
+}
+
+model MaintenanceSchedule {
+  id          String   @id @default(cuid())
+  machineId   String
+  machine     Machine  @relation(fields: [machineId], references: [id], onDelete: Cascade)
+  task        String   // Tugas pemeliharaan (misal: Ganti Oli Gearbox)
+  intervalDays Int     // Interval pemeliharaan (misal: 90 hari)
+  nextDueDate DateTime // Tanggal servis berikutnya
+  lastServiced DateTime? // Tanggal servis terakhir
+  status      String   @default("Active") // Active, Paused, Completed
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([machineId])
 }
