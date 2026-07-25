@@ -1,6 +1,6 @@
 # Stage 1: Install dependencies
 FROM node:20-alpine AS deps
-RUN apk add --no-cache libc6-compat
+RUN apk add --no-cache libc6-compat openssl openssl-dev ca-certificates
 WORKDIR /app
 COPY package*.json ./
 COPY prisma ./prisma
@@ -8,6 +8,7 @@ RUN npm ci
 
 # Stage 2: Rebuild the source code
 FROM node:20-alpine AS builder
+RUN apk add --no-cache openssl openssl-dev ca-certificates
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
