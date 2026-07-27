@@ -8,7 +8,7 @@ import QrScanner from "@/components/QrScanner";
 import { useToast } from "@/lib/toast";
 import { LocalQrCode } from "@/components/LocalQrCode";
 import QRCode from "qrcode";
-import { Archive, AlertCircle, Trash2, History } from "lucide-react";
+import { Archive, AlertCircle, Trash2, History, Printer } from "lucide-react";
 
 interface Props {
   currentUser: any;
@@ -358,13 +358,14 @@ export default function ClientToolsPage({ currentUser, tools, loans, spareParts:
                     <th className="p-4 font-semibold border-b border-slate-700">Alat</th>
                     <th className="p-4 font-semibold border-b border-slate-700 text-center">Jumlah</th>
                     <th className="p-4 font-semibold border-b border-slate-700">Status</th>
+                    <th className="p-4 font-semibold border-b border-slate-700 text-center">Cetak</th>
                     {isGuruOrAdmin && <th className="p-4 font-semibold border-b border-slate-700 text-right">Verifikasi Bengkel</th>}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-700">
                   {loans.length === 0 ? (
                     <tr>
-                      <td colSpan={isMurid ? 5 : 6} className="p-8 text-center text-slate-500">
+                      <td colSpan={isMurid ? 6 : 7} className="p-8 text-center text-slate-500">
                         Belum ada riwayat peminjaman alat.
                       </td>
                     </tr>
@@ -399,6 +400,15 @@ export default function ClientToolsPage({ currentUser, tools, loans, spareParts:
                           {loan.notes && (
                             <span className="block text-[10px] text-slate-500 italic mt-0.5">Note: {loan.notes}</span>
                           )}
+                        </td>
+                        <td className="p-4 text-center">
+                          <button
+                            onClick={() => handlePrintSlip(loan)}
+                            className="p-1.5 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded text-xs transition-colors mx-auto flex items-center justify-center"
+                            title="Cetak Slip Peminjaman"
+                          >
+                            <Printer size={14} />
+                          </button>
                         </td>
                         {isGuruOrAdmin && (
                           <td className="p-4 text-right">
@@ -523,7 +533,88 @@ export default function ClientToolsPage({ currentUser, tools, loans, spareParts:
                 spareParts.map((part) => {
                   const isLow = part.stock <= part.minStock;
 
-                  return (
+  const handlePrintSlip = (loan: any) => {
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) return;
+
+    const dateStr = new Date(loan.loanDate).toLocaleDateString("id-ID", {
+      day: "numeric",
+      month: "long",
+      year: "numeric"
+    });
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Slip Pinjam - ${loan.student.name}</title>
+          <style>
+            @media print {
+              @page { margin: 0; size: 80mm 120mm; }
+              body { margin: 5mm; }
+            }
+            body {
+              font-family: 'Courier New', Courier, monospace;
+              font-size: 11px;
+              color: #000;
+              width: 70mm;
+            }
+            .text-center { text-align: center; }
+            .bold { font-weight: bold; }
+            .divider { border-top: 1px dashed #000; margin: 5px 0; }
+            .section { margin-bottom: 8px; }
+            .sig-box { display: flex; justify-content: space-between; margin-top: 25px; }
+            .sig-col { text-align: center; width: 45%; }
+          </style>
+        </head>
+        <body onload="window.print()">
+          <div class="text-center bold">LMS TMI SMK YPWKS</div>
+          <div class="text-center">TOOL CRIB BENGKEL MEKANIK</div>
+          <div class="divider"></div>
+          <div class="text-center bold">SLIP PEMINJAMAN ALAT</div>
+          <div class="text-center text-xs">ID: ${loan.id.substring(0,8).toUpperCase()}</div>
+          <div class="divider"></div>
+          
+          <div class="section">
+            <div>Tanggal: ${dateStr}</div>
+            <div>Nama   : ${loan.student.name}</div>
+            <div>Kelas  : ${loan.student.class || "-"}</div>
+          </div>
+          
+          <div class="divider"></div>
+          <div class="section bold">
+            <div>ALAT YANG DIPINJAM:</div>
+            <div style="font-size: 12px; margin-top: 3px;">
+              ${loan.tool.name} x ${loan.quantity} Pcs
+            </div>
+          </div>
+          <div class="divider"></div>
+          
+          <div class="section text-center bold" style="font-size: 10px; background-color: #eee; padding: 2px;">
+            STATUS: ${loan.status === "Pending" ? "MENUNGGU ACC TOOLMAN" : "SUDAH DISETUJUI"}
+          </div>
+
+          <div class="sig-box">
+            <div class="sig-col">
+              Peminjam,<br/><br/><br/>
+              ( ${loan.student.name.substring(0, 10)} )
+            </div>
+            <div class="sig-col">
+              Toolman,<br/><br/><br/>
+              (................)
+            </div>
+          </div>
+          
+          <div class="divider" style="margin-top: 15px;"></div>
+          <div class="text-center" style="font-size: 8px;">
+            Simpan slip ini sebagai bukti serah terima alat.
+          </div>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
+
+  return (
                     <div key={part.id} className="bg-slate-800 border border-slate-700 rounded-xl p-5 shadow-lg flex flex-col justify-between hover:border-slate-600 transition-all relative">
                       <div className="space-y-3">
                         <div className="flex justify-between items-start">

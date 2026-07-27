@@ -427,7 +427,7 @@ model JobVacancy {
   id          String   @id @default(cuid())
   company     String   // Contoh: PT Krakatau Steel, PT Chandra Asri
   position    String   // Contoh: Operator Mesin CNC, Fitter
-  description String
+  description String   @db.LongText
   location    String   // Contoh: Cilegon, Banten
   salary      String?  // Gaji (Opsional)
   contact     String   // Email / No Telp untuk melamar
