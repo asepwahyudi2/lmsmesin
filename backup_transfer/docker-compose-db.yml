@@ -33,14 +33,14 @@ services:
     image: cloudflare/cloudflared:latest
     container_name: cloudflared_tunnel
     restart: always
-    command: tunnel --no-autoupdate run --token eyJhIjoiODNhYzFhZDljOGY0NmFkYzM4MTFhYmYwYjQwY2Q4NzciLCJ0IjoiM2E0OTllMzQtODA2Yy00NDI1LWIwY2EtMDg5ZmZlNDZkYjljIiwicyI6Ik5qZGtaRFZqWlRrdFlUQXhZeTAwTlROakxUZzNZV1l0T0RnNU5EQTJPR00yWkRkaiJ9
+    command: tunnel --no-autoupdate run --token eyJhIjoiODNhYzFhZDljOGY0NmFkYzM4MTFhYmYwYjQwY2Q4NzciLCJ0IjoiYWNiMjc5NzAtNDkwMS00MTNjLTkyMDAtYjYwYzM5M2Y3NjkzIiwicyI6InB3UlZPQ2JpNTNMWEREVERkdkJSQStkUE5oaHBIbkVUcWsrRjV3M2tLUUk9In0=
     networks:
       - lms_network
 
 networks:
   lms_network:
     name: mariadb_default
-    driver: bridge
+    external: true
 
 volumes:
   mariadb_data:
