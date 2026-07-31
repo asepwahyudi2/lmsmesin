@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { BookOpen, ArrowLeft, Plus, Trash2, Video, FileText, ExternalLink, X, Save, UserPlus, Users, CheckCircle, Cpu, RotateCw } from "lucide-react";
 import Link from "next/link";
 import { addModule, deleteModule } from "../actions/moduleActions";
-import { enrollStudent, unenrollStudent } from "../actions/enrollmentActions";
+import { enrollStudent, unenrollStudent, enrollStudentsByClass } from "../actions/enrollmentActions";
 import { updateStudentShiftMachine } from "../../actions/shiftActions";
 import { createForumPost, deleteForumPost } from "../actions/forumActions";
 import { autoAssignShift, rotateMachineAssignments } from "../../actions/scheduleActions";
@@ -42,6 +42,8 @@ export default function ClientCoursePage({ course, modules, currentUser, enrolle
   const [fileName, setFileName] = useState("");
   const [isUploading, setIsUploading] = useState(false);
   const [selectedStudentId, setSelectedStudentId] = useState("");
+  const [enrollMode, setEnrollMode] = useState<"single" | "class">("single");
+  const [selectedClass, setSelectedClass] = useState("");
   const [shift, setShift] = useState("Shift Pagi");
   const [assignedMachineId, setAssignedMachineId] = useState("");
 
@@ -108,16 +110,34 @@ export default function ClientCoursePage({ course, modules, currentUser, enrolle
 
   const handleEnroll = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedStudentId) return;
-
     setIsSubmitting(true);
-    const result = await enrollStudent(selectedStudentId, course.id);
+
+    let result;
+    if (enrollMode === "single") {
+      if (!selectedStudentId) {
+        setIsSubmitting(false);
+        return;
+      }
+      result = await enrollStudent(selectedStudentId, course.id);
+    } else {
+      if (!selectedClass) {
+        setIsSubmitting(false);
+        return;
+      }
+      result = await enrollStudentsByClass(selectedClass, course.id);
+    }
+    
     setIsSubmitting(false);
 
     if (result.success) {
-      success("Siswa berhasil didaftarkan!");
+      if (enrollMode === "single") {
+        success("Siswa berhasil didaftarkan!");
+      } else {
+        success(`${result.count || 0} siswa dari kelas ${selectedClass} berhasil didaftarkan!`);
+      }
       setShowEnrollModal(false);
       setSelectedStudentId("");
+      setSelectedClass("");
     } else {
       toastError("Gagal mendaftarkan siswa: " + result.error);
     }
@@ -210,6 +230,11 @@ export default function ClientCoursePage({ course, modules, currentUser, enrolle
   const enrollableStudents = allStudents.filter(
     as => !enrolledStudents.some(es => es.studentId === as.id)
   );
+
+  // Cari list kelas unik dari database siswa
+  const uniqueClasses = Array.from(
+    new Set(allStudents.map(s => s.class).filter(Boolean))
+  ).sort();
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -459,7 +484,9 @@ export default function ClientCoursePage({ course, modules, currentUser, enrolle
                   <button 
                     onClick={() => {
                       setShowEnrollModal(true);
+                      setEnrollMode("single");
                       if (enrollableStudents.length > 0) setSelectedStudentId(enrollableStudents[0].id);
+                      if (uniqueClasses.length > 0) setSelectedClass(uniqueClasses[0] as string);
                     }}
                     className="text-xs text-amber-500 hover:text-amber-400 flex items-center gap-1 font-semibold"
                   >
@@ -657,20 +684,62 @@ export default function ClientCoursePage({ course, modules, currentUser, enrolle
               </button>
             </div>
             <form onSubmit={handleEnroll} className="p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">Pilih Siswa</label>
-                <select 
-                  required
-                  value={selectedStudentId}
-                  onChange={(e) => setSelectedStudentId(e.target.value)}
-                  className="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-amber-500"
+              <div className="flex gap-2 bg-slate-900 rounded-lg p-1 border border-slate-700">
+                <button
+                  type="button"
+                  onClick={() => setEnrollMode("single")}
+                  className={`flex-1 py-1.5 px-3 rounded-md text-xs font-semibold transition-colors ${
+                    enrollMode === "single"
+                      ? "bg-amber-500 text-slate-900"
+                      : "text-slate-400 hover:text-slate-200"
+                  }`}
                 >
-                  {enrollableStudents.length === 0 && <option value="">Semua murid sudah terdaftar</option>}
-                  {enrollableStudents.map(s => (
-                    <option key={s.id} value={s.id}>{s.name} ({s.email})</option>
-                  ))}
-                </select>
+                  Satu per Satu
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEnrollMode("class")}
+                  className={`flex-1 py-1.5 px-3 rounded-md text-xs font-semibold transition-colors ${
+                    enrollMode === "class"
+                      ? "bg-amber-500 text-slate-900"
+                      : "text-slate-400 hover:text-slate-200"
+                  }`}
+                >
+                  Massal per Kelas
+                </button>
               </div>
+
+              {enrollMode === "single" ? (
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-1">Pilih Siswa</label>
+                  <select 
+                    required
+                    value={selectedStudentId}
+                    onChange={(e) => setSelectedStudentId(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-amber-500"
+                  >
+                    {enrollableStudents.length === 0 && <option value="">Semua murid sudah terdaftar</option>}
+                    {enrollableStudents.map(s => (
+                      <option key={s.id} value={s.id}>{s.name} ({s.class ? `${s.class} - ` : ""}{s.email})</option>
+                    ))}
+                  </select>
+                </div>
+              ) : (
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-1">Pilih Kelas</label>
+                  <select 
+                    required
+                    value={selectedClass}
+                    onChange={(e) => setSelectedClass(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-amber-500"
+                  >
+                    {uniqueClasses.length === 0 && <option value="">Tidak ada data kelas</option>}
+                    {uniqueClasses.map(cls => (
+                      <option key={cls} value={cls}>{cls}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
               <div className="pt-4 flex gap-3 justify-end">
                 <button 
                   type="button" 
@@ -681,7 +750,7 @@ export default function ClientCoursePage({ course, modules, currentUser, enrolle
                 </button>
                 <button 
                   type="submit" 
-                  disabled={isSubmitting || enrollableStudents.length === 0}
+                  disabled={isSubmitting || (enrollMode === "single" ? enrollableStudents.length === 0 : uniqueClasses.length === 0)}
                   className="px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-slate-900 font-bold transition-colors flex items-center gap-2 text-sm"
                 >
                   {isSubmitting ? "Mendaftarkan..." : (

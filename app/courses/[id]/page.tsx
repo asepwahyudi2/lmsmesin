@@ -60,7 +60,8 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ i
     select: {
       id: true,
       name: true,
-      email: true
+      email: true,
+      class: true
     }
   });
 
