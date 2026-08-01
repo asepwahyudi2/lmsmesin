@@ -42,6 +42,7 @@ export default function ClientCoursePage({ course, modules, currentUser, enrolle
   const [fileName, setFileName] = useState("");
   const [isUploading, setIsUploading] = useState(false);
   const [selectedStudentId, setSelectedStudentId] = useState("");
+  const [enrollSearch, setEnrollSearch] = useState("");
   const [enrollMode, setEnrollMode] = useState<"single" | "class">("single");
   const [selectedClass, setSelectedClass] = useState("");
   const [shift, setShift] = useState("Shift Pagi");
@@ -115,10 +116,16 @@ export default function ClientCoursePage({ course, modules, currentUser, enrolle
     let result;
     if (enrollMode === "single") {
       if (!selectedStudentId) {
-        setIsSubmitting(false);
-        return;
+        // Jika tidak ada studentId yang dipilih tapi ada filtered list, pilih yang pertama
+        const targetId = selectedStudentId || (filteredEnrollableStudents[0]?.id);
+        if (!targetId) {
+          setIsSubmitting(false);
+          return;
+        }
+        result = await enrollStudent(targetId, course.id);
+      } else {
+        result = await enrollStudent(selectedStudentId, course.id);
       }
-      result = await enrollStudent(selectedStudentId, course.id);
     } else {
       if (!selectedClass) {
         setIsSubmitting(false);
@@ -137,6 +144,7 @@ export default function ClientCoursePage({ course, modules, currentUser, enrolle
       }
       setShowEnrollModal(false);
       setSelectedStudentId("");
+      setEnrollSearch("");
       setSelectedClass("");
     } else {
       toastError("Gagal mendaftarkan siswa: " + result.error);
@@ -230,6 +238,16 @@ export default function ClientCoursePage({ course, modules, currentUser, enrolle
   const enrollableStudents = allStudents.filter(
     as => !enrolledStudents.some(es => es.studentId === as.id)
   );
+
+  // Filter murid berdasarkan input pencarian
+  const filteredEnrollableStudents = enrollableStudents.filter(s => {
+    const searchLower = enrollSearch.toLowerCase();
+    return (
+      s.name.toLowerCase().includes(searchLower) ||
+      (s.class && s.class.toLowerCase().includes(searchLower)) ||
+      s.email.toLowerCase().includes(searchLower)
+    );
+  });
 
   // Cari list kelas unik dari database siswa
   const uniqueClasses = Array.from(
@@ -710,19 +728,34 @@ export default function ClientCoursePage({ course, modules, currentUser, enrolle
               </div>
 
               {enrollMode === "single" ? (
-                <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-1">Pilih Siswa</label>
-                  <select 
-                    required
-                    value={selectedStudentId}
-                    onChange={(e) => setSelectedStudentId(e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-amber-500"
-                  >
-                    {enrollableStudents.length === 0 && <option value="">Semua murid sudah terdaftar</option>}
-                    {enrollableStudents.map(s => (
-                      <option key={s.id} value={s.id}>{s.name} ({s.class ? `${s.class} - ` : ""}{s.email})</option>
-                    ))}
-                  </select>
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-400 mb-1 uppercase">Cari Siswa</label>
+                    <input
+                      type="text"
+                      placeholder="Ketik nama, kelas, atau email..."
+                      value={enrollSearch}
+                      onChange={(e) => {
+                        setEnrollSearch(e.target.value);
+                        setSelectedStudentId(""); // Reset selection agar dinamis mengikuti filtered first item
+                      }}
+                      className="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-amber-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-400 mb-1 uppercase">Pilih Siswa</label>
+                    <select 
+                      required
+                      value={selectedStudentId}
+                      onChange={(e) => setSelectedStudentId(e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-amber-500"
+                    >
+                      {filteredEnrollableStudents.length === 0 && <option value="">Tidak ada siswa yang cocok</option>}
+                      {filteredEnrollableStudents.map(s => (
+                        <option key={s.id} value={s.id}>{s.name} ({s.class ? `${s.class} - ` : ""}{s.email})</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
               ) : (
                 <div>
@@ -750,7 +783,7 @@ export default function ClientCoursePage({ course, modules, currentUser, enrolle
                 </button>
                 <button 
                   type="submit" 
-                  disabled={isSubmitting || (enrollMode === "single" ? enrollableStudents.length === 0 : uniqueClasses.length === 0)}
+                  disabled={isSubmitting || (enrollMode === "single" ? filteredEnrollableStudents.length === 0 : uniqueClasses.length === 0)}
                   className="px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-slate-900 font-bold transition-colors flex items-center gap-2 text-sm"
                 >
                   {isSubmitting ? "Mendaftarkan..." : (
